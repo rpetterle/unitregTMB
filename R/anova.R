@@ -1,7 +1,7 @@
 ###############################################################################
 ## unitregTMB: An R package for modeling correlated continuous bounded data ---
 ## Author: Ricardo Rasmussen Petterle UFPR ------------------------------------
-## Date: March 14, 2026 -------------------------------------------------------
+## Date: June 26, 2026 --------------------------------------------------------
 ###############################################################################
 
 #' Likelihood Ratio Tests for unitregTMB Models

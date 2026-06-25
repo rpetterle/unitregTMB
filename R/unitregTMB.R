@@ -1,8 +1,3 @@
-###############################################################################
-## unitregTMB: Regression models for correlated continuous bounded data -------
-## Author: Ricardo Rasmussen Petterle UFPR ------------------------------------
-###############################################################################
-
 #' @importFrom stats glm.fit quasibinomial coef fitted var model.matrix model.frame model.response qlogis pnorm as.formula
 #' @importFrom reformulas findbars nobars subbars
 #' @importFrom Matrix t Matrix KhatriRao fac2sparse
