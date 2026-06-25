@@ -1,0 +1,27 @@
+Package: unitregTMB
+Type: Package
+Title: Regression Models for Correlated Continuous Bounded Data
+Version: 0.1.0
+Authors@R: c(
+    person("Ricardo Rasmussen", "Petterle", email = "ricardopetterle@ufpr.br", role = c("aut", "cre"), comment = c(ORCID = "https://orcid.org/0000-0001-7735-1077")),
+    person("Wagner H.", "Bonat", role = "ctb")
+  )
+Description: A computationally efficient framework for modeling continuous bounded data (e.g., proportions, rates, fractions) using Template Model Builder (TMB). Provides 16 distribution families across mean, mode, and quantile parameterizations (including Kumaraswamy, unit-Weibull, unit-Gompertz, and Vasicek), natively supporting exact zero- and one-inflation components, as well as complex random effects structures.
+License: GPL (>= 3)
+Encoding: UTF-8
+Depends: 
+    R (>= 4.0.0)
+Imports: 
+    TMB,
+    Rcpp,
+    Matrix,
+    reformulas,
+    stats,
+    utils,
+    methods
+LinkingTo: 
+    TMB,
+    RcppEigen,
+    Rcpp
+RoxygenNote: 7.3.3
+SystemRequirements: GNU make
