@@ -6,7 +6,7 @@
 \alias{pbeta_mean}
 \alias{qbeta_mean}
 \alias{rbeta_mean}
-\title{The Beta Distribution (Mean Parameterization)}
+\title{Beta Distribution (Mean Parameterization)}
 \usage{
 dbeta_mean(x, mu, phi, log = FALSE)
 

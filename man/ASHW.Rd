@@ -6,7 +6,7 @@
 \alias{pashw}
 \alias{qashw}
 \alias{rashw}
-\title{The Arcsecant Hyperbolic Weibull (ASHW) Distribution}
+\title{Arcsecant Hyperbolic Weibull (ASHW) Distribution}
 \usage{
 dashw(x, mu, phi, tau = 0.5, log = FALSE)
 

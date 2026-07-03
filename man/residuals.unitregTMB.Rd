@@ -14,7 +14,25 @@ Options are \code{"quantile"} (default), \code{"cox-snell"}, or \code{"response"
 
 \item{...}{Additional arguments (currently unused).}
 }
+\value{
+A numeric vector representing the chosen residuals.
+}
 \description{
 Computes randomized quantile or Cox-Snell residuals for continuous bounded 
 models, accounting for potential zero and one inflation (Dunn & Smyth, 1996).
+}
+\examples{
+\donttest{
+# Assuming 'da' is your dataset with a zero-inflated response:
+# fit <- unitregTMB(Y ~ educ, p0.formula = ~ 1, data = da, family = vasicek())
+# 
+# # Extract randomized quantile residuals (default)
+# res_q <- residuals(fit)
+# head(res_q)
+#
+# # Extract response residuals (Observed - Expected)
+# res_r <- residuals(fit, type = "response")
+# head(res_r)
+}
+
 }

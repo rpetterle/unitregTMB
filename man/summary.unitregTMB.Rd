@@ -20,3 +20,14 @@ log-likelihood, model family, link functions, and random effects variance compon
 Computes and extracts summary statistics for a fitted \code{unitregTMB} model, 
 including fixed effects, standard errors, z-values, and p-values.
 }
+\examples{
+\donttest{
+# Assuming a dataset 'da' and a fitted model 'fit':
+# fit <- unitregTMB(Y ~ educ + refill + (1 | id), 
+#                   phi.formula = ~ refill,
+#                   family = vasicek(model_for = "mean"),  
+#                   data = da)
+#
+# summary(fit)
+}
+}

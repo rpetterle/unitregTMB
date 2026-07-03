@@ -17,3 +17,8 @@ A numeric value representing the BIC.
 \description{
 Extracts the Bayesian Information Criterion (BIC) of a fitted \code{unitregTMB} model.
 }
+\examples{
+\donttest{
+# BIC(fit)
+}
+}

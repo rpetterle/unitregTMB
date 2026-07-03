@@ -3,8 +3,7 @@
 // ----------------------------------------------------------------------------
 
 #define EIGEN_DONT_PARALLELIZE 
-// 1. Mudamos o nome da função gerada pelo TMB
-#define TMB_LIB_INIT R_init_unitregTMB_tmb
+#define TMB_LIB_INIT tmb_custom_init
 
 #include <TMB.hpp>
 #include <cmath> 
@@ -15,11 +14,6 @@
 
 #include "Distributions.hpp" 
 
-// 2. Usamos o hook do Rcpp para chamar a inicialização do TMB!
-// [[Rcpp::init]]
-void my_tmb_init(DllInfo *dll) {
-    R_init_unitregTMB_tmb(dll);
-}
 
 enum valid_mu_link {
   logit_link   = 0,
@@ -223,8 +217,6 @@ Type objective_function<Type>::operator()() {
       
       Type mu_i  = inverse_linkfun(eta_mu(i), link); 
       
-      // Type phi_i = exp(eta_phi(i));
-
       Type phi_i = inverse_phi_linkfun(eta_phi(i), family);
 
       Type log_p0 = Type(0.0);

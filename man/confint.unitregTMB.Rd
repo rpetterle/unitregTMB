@@ -23,3 +23,8 @@ A matrix with columns giving lower and upper confidence limits for each paramete
 Computes confidence intervals for one or more parameters in a fitted \code{unitregTMB} model
 using the Wald method (based on standard errors).
 }
+\examples{
+\donttest{
+# confint(fit, level = 0.95)
+}
+}

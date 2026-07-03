@@ -18,3 +18,8 @@ An object of class \code{logLik} containing the log-likelihood value,
 \description{
 Extracts the log-likelihood of a fitted \code{unitregTMB} model.
 }
+\examples{
+\donttest{
+# logLik(fit)
+}
+}

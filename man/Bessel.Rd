@@ -6,7 +6,7 @@
 \alias{pbessel}
 \alias{qbessel}
 \alias{rbessel}
-\title{Bessel Regression Distribution}
+\title{Bessel Distribution}
 \usage{
 dbessel(x, mu, phi, log = FALSE)
 

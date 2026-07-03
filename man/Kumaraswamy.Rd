@@ -10,7 +10,7 @@
 \alias{pkum_quantile}
 \alias{qkum_quantile}
 \alias{rkum_quantile}
-\title{The Kumaraswamy Distribution}
+\title{Kumaraswamy Distribution}
 \usage{
 dkum_mode(x, mu, phi, log = FALSE)
 

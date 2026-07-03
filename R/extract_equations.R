@@ -16,6 +16,19 @@
 #' @param custom_labels Named character vector; pairs of old variable names and desired new labels.
 #' @param index_labels Logical; if TRUE (default), appends the domain bounds (e.g., for i = 1,...,N).
 #' 
+#' @return A character string (invisibly) containing the LaTeX code for the equations. 
+#'   The code is also printed to the console.
+#' 
+#' @examples
+#' \donttest{
+#' # Assuming 'fit' is a fitted unitregTMB model:
+#' # Extract the theoretical symbolic equation for the mean (mu)
+#' # extract_equations(fit, mode = "symbolic", component = "mu")
+#' 
+#' # Extract the numeric fitted equation for all components with custom labels
+#' # eq <- extract_equations(fit, mode = "numeric", component = "all", 
+#' #                         custom_labels = c("educHS+" = "HighSchool"))
+#' }
 #' @export
 extract_equations <- function(model, mode = c("symbolic", "numeric"), 
                               component = c("mu", "phi", "p0", "p1", "all"), 
@@ -27,13 +40,11 @@ extract_equations <- function(model, mode = c("symbolic", "numeric"),
   component <- match.arg(component)
   link_style <- match.arg(link_style)
   
-  # Ensure standard errors are available if numeric mode is requested
   sd_rep <- if (!is.null(model$sd_report)) model$sd_report else model$sdreport
   if (is.null(sd_rep) && mode == "numeric") {
     stop("Model must be fitted with standard errors (sdreport) to extract numeric equations.")
   }
   
-  # --- Initial Setup and Link Function ---
   link_name <- "logit"
   if (!is.null(model$link.mu) && !is.null(model$link.mu$name)) {
     link_name <- model$link.mu$name[1]
@@ -42,23 +53,18 @@ extract_equations <- function(model, mode = c("symbolic", "numeric"),
     else if (!is.null(model$family$link)) link_name <- model$family$link[1]
   }
   
-  # Detect Random Effects presence
   has_re <- isTRUE(model$has_random_effects_mu) || isTRUE(model$obj$env$data$has_random_effects_mu == 1)
   
-  # Base index for LHS (Response variables)
   lhs_idx <- if (has_re && !is.null(grouping_var)) "{ij}" else "i"
   mu_symbol <- sprintf("\\mu_{%s}", lhs_idx)
   
-  # Dynamic Link Function Formatting
   get_link_latex <- function(lnk, param_name) {
     if (is.null(lnk) || length(lnk) != 1) lnk <- "logit"
     
     if (link_style == "name") {
-      # Default: Output the literal name (e.g., \mathrm{probit}(\mu))
       if (lnk == "log") return(sprintf("\\log(%s)", param_name))
       return(sprintf("\\mathrm{%s}(%s)", lnk, param_name))
     } else {
-      # Inverse: Output the mathematical inverse formula
       switch(lnk,
              "logit"   = sprintf("\\log\\left(\\frac{%s}{1 - %s}\\right)", param_name, param_name),
              "probit"  = sprintf("\\Phi^{-1}(%s)", param_name),
@@ -70,14 +76,11 @@ extract_equations <- function(model, mode = c("symbolic", "numeric"),
     }
   }
   
-  # Smart Index Assigner for Covariates
-  # Variables matching the grouping_var get {ij}, everything else gets {i}
   get_idx <- function(v) {
     if (has_re && !is.null(grouping_var) && grepl(grouping_var, v)) return("{ij}")
     return("i")
   }
   
-  # --- Smart Line Breaking and Alignment ---
   chunk_terms <- function(terms_vec, chunk_size = 3, is_numeric = FALSE) {
     if (length(terms_vec) == 0) return("")
     chunks <- split(terms_vec, ceiling(seq_along(terms_vec) / chunk_size))
@@ -96,15 +99,10 @@ extract_equations <- function(model, mode = c("symbolic", "numeric"),
 
   comps_to_print <- if (component == "all") c("mu", "phi", "p0", "p1") else component
 
-  cat("\n\\begin{align}\n")
   lines_out <- c()
   
-  # ===========================================================================
-  # SYMBOLIC MODE (Theoretical formulation)
-  # ===========================================================================
   if (mode == "symbolic") {
     
-    # 1. Location Submodel (mu)
     if ("mu" %in% comps_to_print) {
       fix_form <- reformulas::nobars(model$formula)
       mt <- stats::terms(fix_form)
@@ -118,7 +116,6 @@ extract_equations <- function(model, mode = c("symbolic", "numeric"),
       rhs_mu <- c()
       b_idx <- 0
       
-      # Intercept Handling
       if (attr(mt, "intercept") == 1) {
         if ("(Intercept)" %in% re_names) {
           rhs_mu <- c(rhs_mu, sprintf("(\\beta_{%d} + u_{%di})", b_idx, b_idx))
@@ -128,7 +125,6 @@ extract_equations <- function(model, mode = c("symbolic", "numeric"),
         b_idx <- b_idx + 1
       }
       
-      # Covariates Handling
       for (var in term_labels) {
         print_var <- var
         if (!is.null(custom_labels) && var %in% names(custom_labels)) print_var <- custom_labels[[var]]
@@ -148,7 +144,6 @@ extract_equations <- function(model, mode = c("symbolic", "numeric"),
       lines_out <- c(lines_out, sprintf("  %s &= %s, \\nonumber", lhs_mu, chunk_terms(rhs_mu, chunk_size = 3, is_numeric = FALSE)))
     }
     
-    # 2. Secondary Submodels (phi, p0, p1) with standard greek notation
     components_sym <- list(
       phi = list(name = "phi", lhs = sprintf("\\log(\\phi_{%s})", lhs_idx), form = model$phi.formula, sym = "\\psi"),
       p0  = list(name = "p0",  lhs = sprintf("\\mathrm{logit}(p_{0%s})", lhs_idx), form = model$p0.formula, sym = "\\gamma"),
@@ -183,9 +178,6 @@ extract_equations <- function(model, mode = c("symbolic", "numeric"),
     }
     
   } else {
-    # ===========================================================================
-    # NUMERIC MODE (Fitted estimated values)
-    # ===========================================================================
     summ <- summary(sd_rep, "fixed")
     components_num <- list(
       mu  = list(prefix = "beta_mu", lhs = get_link_latex(link_name, mu_symbol), mat = "X_mu"),
@@ -243,12 +235,10 @@ extract_equations <- function(model, mode = c("symbolic", "numeric"),
     }
   }
   
-  # Print Random Effects distribution reference
   if (has_re && ("mu" %in% comps_to_print || component == "all")) {
     lines_out <- c(lines_out, "  & \\quad \\text{where } \\mathbf{u} \\sim N(\\mathbf{0}, \\mathbf{\\Sigma}) \\nonumber")
   }
   
-  # --- Dynamic Domain Bounds Construction ---
   if (index_labels) {
     n_i <- if (has_re && !is.null(model$re_info_mu)) model$re_info_mu$n_re_levels_list[1] else model$nobs
     
@@ -261,6 +251,12 @@ extract_equations <- function(model, mode = c("symbolic", "numeric"),
     lines_out <- c(lines_out, lbl)
   }
   
-  cat(paste(lines_out, collapse = " \\\\\n"), "\n")
-  cat("\\end{align}\n")
+  final_tex <- paste0(
+    "\\begin{align}\n",
+    paste(lines_out, collapse = " \\\\\n"), "\n",
+    "\\end{align}\n"
+  )
+  
+  cat(final_tex)
+  invisible(final_tex)
 }

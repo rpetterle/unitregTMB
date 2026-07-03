@@ -1,7 +1,7 @@
 #' @name UnitGompertz
 #' @aliases UnitGompertz dugompertz_mode pugompertz_mode qugompertz_mode rugompertz_mode dugompertz_quantile pugompertz_quantile qugompertz_quantile rugompertz_quantile
 #' 
-#' @title The Unit-Gompertz Distribution
+#' @title Unit-Gompertz Distribution
 #' 
 #' @description 
 #' Density, distribution function, quantile function, and random number generation for the 
@@ -39,8 +39,6 @@
 #' 
 NULL
 
-# --- Mode Parameterization ---
-
 #' @rdname UnitGompertz
 #' @export
 dugompertz_mode <- function(x, mu, phi, log = FALSE) {
@@ -68,8 +66,6 @@ rugompertz_mode <- function(n, mu, phi) {
   stopifnot(n > 0, mu > 0, mu < 1, phi > 0)
   cpp_rugompertz_mode(n, mu, phi)
 }
-
-# --- Quantile Parameterization ---
 
 #' @rdname UnitGompertz
 #' @export

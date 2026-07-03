@@ -1,7 +1,7 @@
 #' @name UBS
 #' @aliases UBS dubs pubs qubs rubs
 #' 
-#' @title The Unit-Birnbaum-Saunders (UBS) Distribution
+#' @title Unit-Birnbaum-Saunders (UBS) Distribution
 #' 
 #' @description 
 #' Density, distribution function, quantile function, and random number generation for the 

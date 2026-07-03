@@ -1,4 +1,4 @@
-#' Simulate Responses from a Fitted unitregTMB Model
+#' @title Simulate Responses from a Fitted unitregTMB Model
 #' 
 #' @description 
 #' Generates simulated response data from a fitted \code{unitregTMB} model. 
@@ -12,15 +12,23 @@
 #' 
 #' @return A data.frame with \code{nsim} columns containing the simulated responses.
 #' 
+#' @examples
+#' \donttest{
+#' # Assuming 'da' is your dataset:
+#' # fit <- unitregTMB(Y ~ educ, p0.formula = ~ 1, data = da, family = vasicek())
+#' # 
+#' # # Simulate 5 new response vectors
+#' # sim_data <- simulate(fit, nsim = 5, seed = 123)
+#' # head(sim_data)
+#' }
+#' 
 #' @importFrom stats predict runif
 #' @export
 simulate.unitregTMB <- function(object, nsim = 1, seed = NULL, ...) {
   
-  # Controlo da semente aleatória (Padrão ouro do R)
   if (!is.null(seed)) set.seed(seed)
   if (!exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) runif(1)
   
-  # 1. Extrair os parâmetros preditos pelo modelo ajustado
   n <- object$nobs
   tau <- object$tau 
   family_code <- object$obj$env$data$family
@@ -31,40 +39,36 @@ simulate.unitregTMB <- function(object, nsim = 1, seed = NULL, ...) {
   p0_hat  <- preds$p0
   p1_hat  <- preds$p1
   
-  # 2. Inicializar a lista que guardará as simulações
+  # --- Vectorized probability normalization (Safety Check) ---
+  prob_mat <- cbind(p0_hat, p1_hat, 1 - p0_hat - p1_hat)
+  prob_mat[prob_mat < 0] <- 0
+  prob_mat <- prob_mat / rowSums(prob_mat)
+  
+  cum_p0 <- prob_mat[, 1]
+  cum_p1 <- cum_p0 + prob_mat[, 2]
+  
   sim_list <- vector("list", nsim)
   
-  # 3. Loop de Simulação (Matemática validada no HNP)
   for (i in seq_len(nsim)) {
     
-    # A. Gera a parte contínua via Rcpp
     y_cont_sim <- get_random_continuous(family_code, n, mu_hat, phi_hat, tau)
     y_cont_sim <- pmax(pmin(y_cont_sim, 1 - 1e-6), 1e-6)
     
-    # B. Aplica a Inflação (ZOI)
-    y_sim <- numeric(n)
-    for (k in 1:n) {
-      cat_prob_vec <- c(p0_hat[k], p1_hat[k], 1 - p0_hat[k] - p1_hat[k])
-      
-      # Trava numérica de segurança para probabilidades
-      if (any(is.na(cat_prob_vec)) || any(cat_prob_vec < 0) || sum(cat_prob_vec) < 0.99 || sum(cat_prob_vec) > 1.01) {
-        cat_prob_vec[cat_prob_vec < 0] <- 0
-        cat_prob_vec <- cat_prob_vec / sum(cat_prob_vec)
-      }
-      
-      category <- sample(0:2, size = 1, prob = cat_prob_vec)
-      y_sim[k] <- if (category == 0) 0 else if (category == 1) 1 else y_cont_sim[k]
-    }
+    # --- Vectorized Sampling for Zero-One Inflation ---
+    rand_draws <- stats::runif(n)
+    y_sim <- y_cont_sim
+    
+    y_sim[rand_draws < cum_p0] <- 0
+    y_sim[rand_draws >= cum_p0 & rand_draws < cum_p1] <- 1
     
     sim_list[[i]] <- y_sim
   }
   
-  # 4. Retorna no formato clássico do simulate() no R
   out <- as.data.frame(sim_list)
   colnames(out) <- paste0("sim_", seq_len(nsim))
   
   attr(out, "seed") <- seed
-  class(out) <- c("data.frame")
+  class(out) <- "data.frame"
   
   return(out)
 }

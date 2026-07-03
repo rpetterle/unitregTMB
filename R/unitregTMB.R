@@ -3,6 +3,7 @@
 #' @importFrom Matrix t Matrix KhatriRao fac2sparse
 #' @importFrom TMB MakeADFun sdreport
 #' @importFrom utils modifyList
+#' @importFrom Rcpp sourceCpp
 #' @useDynLib unitregTMB
 NULL
 
@@ -465,7 +466,6 @@ unitregTMB <- function(formula, data, family,
   fam_precision_ids <- c(0L, 4L, 5L)
   if (family$family_code == 1L) {
   
-  ## Simplex dispersion parameter
   den <- pmax(mu_hat[interior]^3 * (1 - mu_hat[interior])^3, 1e-10)
   phi_est <- mean((Y[interior] - mu_hat[interior])^2 / den)
   phi_est <- pmin(pmax(phi_est, 1e-4), 100)

@@ -29,3 +29,17 @@ Extracts, formats, and compiles fixed-effects coefficients and their correspondi
 standard errors from one or multiple fitted \code{unitregTMB} models. This function is 
 particularly useful for generating side-by-side model comparisons.
 }
+\examples{
+\donttest{
+# Assuming 'da' is your dataset:
+# fit1 <- unitregTMB(Y ~ educ, data = da, family = vasicek())
+# fit2 <- unitregTMB(Y ~ educ, data = da, family = kumaraswamy())
+# 
+# # Console Output Comparison
+# summary_coef(fit1, fit2, component = "all", digits = 2)
+# 
+# # LaTeX Table Output Comparison
+# summary_coef(fit1, fit2, component = "mu", print_tex = TRUE)
+}
+
+}

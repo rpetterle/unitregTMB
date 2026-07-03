@@ -1,7 +1,7 @@
 #' @name ASHW
 #' @aliases ASHW dashw pashw qashw rashw
 #' 
-#' @title The Arcsecant Hyperbolic Weibull (ASHW) Distribution
+#' @title Arcsecant Hyperbolic Weibull (ASHW) Distribution
 #' 
 #' @description 
 #' Density, distribution function, quantile function, and random number generation for the 

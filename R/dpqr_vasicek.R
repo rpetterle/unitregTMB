@@ -1,7 +1,7 @@
 #' @name Vasicek
 #' @aliases Vasicek dvasicek_mean pvasicek_mean qvasicek_mean rvasicek_mean dvasicek_quantile pvasicek_quantile qvasicek_quantile rvasicek_quantile
 #' 
-#' @title The Vasicek Distribution
+#' @title Vasicek Distribution
 #' 
 #' @description 
 #' Density, distribution function, quantile function, and random number generation for the 
@@ -46,8 +46,6 @@
 #' 
 NULL
 
-# --- Mean Parameterization ---
-
 #' @rdname Vasicek
 #' @export
 dvasicek_mean <- function(x, mu, phi, log = FALSE) {
@@ -75,8 +73,6 @@ rvasicek_mean <- function(n, mu, phi) {
   stopifnot(n > 0, mu > 0, mu < 1, phi > 0, phi < 1)
   cpp_rvasicek_mean(n, mu, phi)
 }
-
-# --- Quantile Parameterization ---
 
 #' @rdname Vasicek
 #' @export

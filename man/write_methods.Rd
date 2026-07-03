@@ -6,6 +6,32 @@
 \usage{
 write_methods(model, language = c("en", "pt"))
 }
+\arguments{
+\item{model}{A fitted \code{unitregTMB} object.}
+
+\item{language}{Character string indicating the language for the generated text. 
+Options are \code{"en"} for English (default) or \code{"pt"} for Portuguese.}
+}
+\value{
+A list (invisibly) containing two elements: \code{text} (the generated 
+  methods paragraph) and \code{bibtex} (the citation string). The text is also 
+  printed to the console.
+}
 \description{
-Generate Methods Section Text for unitregTMB
+Generates a boilerplate "Methods" section text for academic papers, describing 
+the statistical model fitted with \code{unitregTMB}. It dynamically detects 
+the distribution family, link function, presence of zero/one inflation, 
+and random effects, writing the text in either English or Portuguese.
+}
+\examples{
+\donttest{
+# Assuming 'fit' is a fitted unitregTMB model:
+# Generate text in English
+# write_methods(fit, language = "en")
+
+# Generate text in Portuguese and save to an object
+# methods_output <- write_methods(fit, language = "pt")
+# methods_output$text
+}
+
 }

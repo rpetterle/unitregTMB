@@ -21,3 +21,8 @@ An object of class \code{formula}.
 \description{
 Extracts the formula for a specific model component of a \code{unitregTMB} object.
 }
+\examples{
+\donttest{
+# formula(fit, component = "phi")
+}
+}

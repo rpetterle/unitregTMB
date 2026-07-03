@@ -23,3 +23,14 @@ Generates simulated response data from a fitted \code{unitregTMB} model.
 This function perfectly mimics the data-generating process (DGP) estimated by the model, 
 including the continuous distribution and any zero/one inflation parameters.
 }
+\examples{
+\donttest{
+# Assuming 'da' is your dataset:
+# fit <- unitregTMB(Y ~ educ, p0.formula = ~ 1, data = da, family = vasicek())
+# 
+# # Simulate 5 new response vectors
+# sim_data <- simulate(fit, nsim = 5, seed = 123)
+# head(sim_data)
+}
+
+}

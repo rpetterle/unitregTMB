@@ -1,7 +1,7 @@
 #' @name BetaMode
 #' @aliases BetaMode dbeta_mode pbeta_mode qbeta_mode rbeta_mode
 #' 
-#' @title The Beta Distribution (Mode Parameterization)
+#' @title Beta Distribution (Mode Parameterization)
 #' 
 #' @description 
 #' Density, distribution function, quantile function, and random number generation for the 

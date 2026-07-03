@@ -1,7 +1,7 @@
 #' @name Kumaraswamy
 #' @aliases Kumaraswamy dkum_mode pkum_mode qkum_mode rkum_mode dkum_quantile pkum_quantile qkum_quantile rkum_quantile
 #' 
-#' @title The Kumaraswamy Distribution
+#' @title Kumaraswamy Distribution
 #' 
 #' @description 
 #' Density, distribution function, quantile function, and random number generation for the 
@@ -27,8 +27,6 @@
 #' \deqn{f(x) = a b x^{a-1} (1 - x^a)^{b-1}}
 #' 
 NULL
-
-# --- Mode Parameterization ---
 
 #' @rdname Kumaraswamy
 #' @export
@@ -57,8 +55,6 @@ rkum_mode <- function(n, mu, phi) {
   stopifnot(n > 0, mu > 0, mu < 1, phi > 1)
   cpp_rkum_mode(n, mu, phi)
 }
-
-# --- Quantile Parameterization ---
 
 #' @rdname Kumaraswamy
 #' @export

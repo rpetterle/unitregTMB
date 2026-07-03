@@ -6,7 +6,7 @@
 \alias{puweibull}
 \alias{quweibull}
 \alias{ruweibull}
-\title{The Unit-Weibull Distribution}
+\title{Unit-Weibull Distribution}
 \usage{
 duweibull(x, mu, phi, tau = 0.5, log = FALSE)
 

@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot_coef.R
 \name{plot_coef}
 \alias{plot_coef}
-\title{Plot Coefficients from one or more unitregTMB models}
+\title{Plot Coefficients from unitregTMB Models}
 \usage{
 plot_coef(
   ...,
@@ -29,6 +29,83 @@ plot_coef(
   ylab = "Coefficient"
 )
 }
+\arguments{
+\item{...}{One or more fitted model objects of class \code{unitregTMB}, or a list of such objects.}
+
+\item{conf_level}{Numeric. The confidence level for the error bars. Default is \code{0.95}.}
+
+\item{intercept}{Logical. Should the intercept(s) be included in the plot? Default is \code{TRUE}.}
+
+\item{component}{Character vector specifying which model components to plot. 
+Options are \code{"all"}, \code{"mu"} (default), \code{"phi"}, \code{"p0"}, or \code{"p1"}.}
+
+\item{ncol}{Integer. Number of columns for the faceted layout when \code{facet = TRUE}. Default is \code{2}.}
+
+\item{labels}{Character vector. Custom labels for the y-axis (coefficient names). Default is \code{NULL}.}
+
+\item{parse_labels}{Logical. If \code{TRUE}, parses \code{labels} as mathematical expressions. Default is \code{FALSE}.}
+
+\item{math_labels}{Logical. If \code{TRUE}, automatically generates mathematical expressions for the coefficients 
+(e.g., beta^phi). Default is \code{FALSE}.}
+
+\item{facet}{Logical. If \code{TRUE} (default), displays models in separate panels using \code{patchwork} and \code{ggh4x}. 
+If \code{FALSE}, overlays models in a single plot using position dodge.}
+
+\item{palette}{Character string specifying the color palette. Options include \code{"default"}, 
+\code{"grey"}, \code{"viridis"}, \code{"brewer"}, or a \code{ggsci} palette (e.g., \code{"ggsci::npg"}).}
+
+\item{point_size}{Numeric. Size of the point estimates. Default is \code{2}.}
+
+\item{strip_text_size}{Numeric. Font size for the facet strip labels. Default is \code{11}.}
+
+\item{axis_title_size}{Numeric. Font size for the axis titles. Default is \code{11}.}
+
+\item{axis_text_x_size}{Numeric. Font size for the x-axis text. Default is \code{10}.}
+
+\item{axis_text_y_size}{Numeric. Font size for the y-axis text. Default is \code{12}.}
+
+\item{vline_color}{Character. Color for the vertical zero-reference line. Default is \code{"gray40"}.}
+
+\item{point_color}{Character. Color for the points when \code{facet = TRUE}. Default is \code{"#0072B2"}.}
+
+\item{errorbar_color}{Character. Color for the error bars when \code{facet = TRUE}. Default is \code{"gray40"}.}
+
+\item{title}{Character. Main title for the plot. Default is \code{NULL}.}
+
+\item{subtitle}{Character. Subtitle for the plot. Automatically generated based on \code{conf_level} if missing.}
+
+\item{xlab}{Character. Label for the x-axis. Default is \code{"Estimate Value"}.}
+
+\item{ylab}{Character. Label for the y-axis. Default is \code{"Coefficient"}.}
+}
+\value{
+A \code{ggplot} object containing the coefficient plot.
+}
 \description{
-Plot Coefficients from one or more unitregTMB models
+Creates a coefficient plot (also known as a forest plot) to visualize point estimates 
+and confidence intervals for one or more fitted \code{unitregTMB} models. 
+It allows for easy model comparison, component selection (mean, precision, or inflation), 
+and highly customizable \code{ggplot2} aesthetics.
+}
+\details{
+When \code{facet = TRUE}, the function requires the \code{patchwork}, \code{grid}, and \code{ggh4x} 
+packages to arrange the panels seamlessly. When \code{facet = FALSE}, models are plotted together 
+in a single panel and distinguished by color and shape.
+}
+\examples{
+\donttest{
+# Assuming 'da' is your dataset:
+# fit1 <- unitregTMB(Y ~ educ + refill, data = da, family = vasicek())
+# fit2 <- unitregTMB(Y ~ educ + refill, data = da, family = kumaraswamy())
+#
+# # 1. Plot the location components (mu) for a single model
+# plot_coef(fit1, component = "mu")
+#
+# # 2. Compare two models overlaying them in the same panel (facet = FALSE)
+# plot_coef(fit1, fit2, component = "mu", facet = FALSE, palette = "Set1")
+#
+# # 3. Plot all components of a model with mathematical labels and a custom palette
+# plot_coef(fit1, component = "all", math_labels = TRUE, palette = "ggsci::npg")
+}
+
 }

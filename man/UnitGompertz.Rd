@@ -10,7 +10,7 @@
 \alias{pugompertz_quantile}
 \alias{qugompertz_quantile}
 \alias{rugompertz_quantile}
-\title{The Unit-Gompertz Distribution}
+\title{Unit-Gompertz Distribution}
 \usage{
 dugompertz_mode(x, mu, phi, log = FALSE)
 

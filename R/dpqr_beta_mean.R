@@ -1,7 +1,7 @@
 #' @name BetaMean
 #' @aliases BetaMean dbeta_mean pbeta_mean qbeta_mean rbeta_mean
 #' 
-#' @title The Beta Distribution (Mean Parameterization)
+#' @title Beta Distribution (Mean Parameterization)
 #' 
 #' @description 
 #' Density, distribution function, quantile function, and random number generation for the 

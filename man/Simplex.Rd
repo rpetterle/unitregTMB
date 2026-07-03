@@ -6,7 +6,7 @@
 \alias{psimplex}
 \alias{qsimplex}
 \alias{rsimplex}
-\title{The Simplex Distribution}
+\title{Simplex Distribution}
 \usage{
 dsimplex(x, mu, phi, log = FALSE)
 

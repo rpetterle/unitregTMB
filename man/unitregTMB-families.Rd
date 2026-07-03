@@ -29,13 +29,26 @@ kumaraswamy(model_for = c("mode", "quantile"), link = "logit", tau = 0.5)
 
 unitgompertz(model_for = c("mode", "quantile"), link = "logit", tau = 0.5)
 
-unitweibull(model_for = c("quantile"), tau = 0.5, link = "logit")
+unitweibull(model_for = c("quantile"), link = "logit", tau = 0.5)
 
-johnsonsb(model_for = c("quantile"), tau = 0.5, link = "logit")
+johnsonsb(model_for = c("quantile"), link = "logit", tau = 0.5)
 
-ashw(model_for = c("quantile"), tau = 0.5, link = "logit")
+ashw(model_for = c("quantile"), link = "logit", tau = 0.5)
 
-ubs(model_for = c("quantile"), tau = 0.5, link = "logit")
+ubs(model_for = c("quantile"), link = "logit", tau = 0.5)
+}
+\arguments{
+\item{model_for}{Character string indicating the parameterization to be used 
+(e.g., \code{"mean"}, \code{"mode"}, or \code{"quantile"}).}
+
+\item{link}{Character string specifying the link function for the location parameter. 
+Supported links are \code{"logit"}, \code{"probit"}, \code{"cloglog"}, and \code{"cauchit"}.}
+
+\item{tau}{Numeric value between 0 and 1 indicating the quantile to be modeled 
+(only applicable when \code{model_for = "quantile"}). Default is 0.5.}
+}
+\value{
+An object of class \code{unitregTMBFamily} containing the family details and link functions.
 }
 \description{
 Functions to specify the distribution family and link function for \code{unitregTMB} models.

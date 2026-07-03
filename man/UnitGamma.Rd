@@ -10,7 +10,7 @@
 \alias{pugamma_mode}
 \alias{qugamma_mode}
 \alias{rugamma_mode}
-\title{The Unit-Gamma Distribution}
+\title{Unit-gamma Distribution}
 \usage{
 dugamma_mean(x, mu, phi, log = FALSE)
 
@@ -45,24 +45,24 @@ rugamma_mode(n, mu, phi)
 }
 \description{
 Density, distribution function, quantile function, and random number generation for the 
-Unit-Gamma distribution parameterized by the Mean or Mode.
+Unit-gamma distribution parameterized by the Mean or Mode.
 }
 \details{
-The Unit-Gamma distribution is obtained by the transformation \eqn{Y = \exp(-X)}, where \eqn{X \sim \Gamma(\text{shape}=\phi, \text{rate}=\beta)}.
+The Unit-gamma distribution is obtained by the transformation \eqn{Y = \exp(-X)}, where \eqn{X \sim \Gamma(\text{shape}=\phi, \text{rate}=\beta)}.
 }
 \examples{
 # 1. Mean Parameterization
 mu_m <- 0.5
 phi_m <- 2.0
 x1 <- rugamma_mean(1000, mu_m, phi_m)
-hist(x1, prob = TRUE, main = "Unit-Gamma (Mean)", col = "lightgray", border = "white")
+hist(x1, prob = TRUE, main = "Unit-gamma (Mean)", col = "lightgray", border = "white")
 curve(dugamma_mean(x, mu_m, phi_m), add = TRUE, col = "red", lwd = 2)
 
 # 2. Mode Parameterization
 mu_d <- 0.7
 phi_d <- 5.0
 x2 <- rugamma_mode(1000, mu_d, phi_d)
-hist(x2, prob = TRUE, main = "Unit-Gamma (Mode)", col = "lightblue", border = "white")
+hist(x2, prob = TRUE, main = "Unit-gamma (Mode)", col = "lightblue", border = "white")
 curve(dugamma_mode(x, mu_d, phi_d), add = TRUE, col = "blue", lwd = 2)
 
 }

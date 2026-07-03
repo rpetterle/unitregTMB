@@ -1,13 +1,3 @@
-###############################################################################
-## unitregTMB: An R package for modeling correlated continuous bounded data ---
-## Methods: summary, print.summary, print, gof, coef, logLik, AIC, BIC ... ----
-## Author: Ricardo Rasmussen Petterle UFPR ------------------------------------
-## Date: June 22, 2026 --------------------------------------------------------
-###############################################################################
-
-## ----------------------------------------------------------------------------
-## summary.unitregTMB ---------------------------------------------------------
-## ----------------------------------------------------------------------------
 #' @title Summary for unitregTMB Models
 #' 
 #' @description 
@@ -21,6 +11,16 @@
 #' log-likelihood, model family, link functions, and random effects variance components 
 #' (if applicable).
 #' 
+#' @examples
+#' \donttest{
+#' # Assuming a dataset 'da' and a fitted model 'fit':
+#' # fit <- unitregTMB(Y ~ educ + refill + (1 | id), 
+#' #                   phi.formula = ~ refill,
+#' #                   family = vasicek(model_for = "mean"),  
+#' #                   data = da)
+#' #
+#' # summary(fit)
+#' }
 #' @export
 summary.unitregTMB <- function(object,...) {
   
@@ -112,7 +112,6 @@ summary.unitregTMB <- function(object,...) {
      "log"
  } 
 
-  ## Output 
   out <- list(
     coeftable = coeftable,
     logLik = object$logLik,
@@ -137,9 +136,6 @@ summary.unitregTMB <- function(object,...) {
   out
 }
 
-## ----------------------------------------------------------------------------
-## print.summary.unitregTMB ---------------------------------------------------
-## ----------------------------------------------------------------------------
 #' @title Print Summary for unitregTMB Models
 #' 
 #' @description 
@@ -251,9 +247,6 @@ print.summary.unitregTMB <- function(x, digits = max(3, getOption("digits") -3),
   invisible(x)
 }
 
-## ----------------------------------------------------------------------------
-## print.unitregTMB -----------------------------------------------------------
-## ----------------------------------------------------------------------------
 #' @title Print a unitregTMB Model
 #' 
 #' @description 
@@ -265,6 +258,11 @@ print.summary.unitregTMB <- function(x, digits = max(3, getOption("digits") -3),
 #' 
 #' @return Invisibly returns the original \code{unitregTMB} object.
 #' 
+#' @examples
+#' \donttest{
+#' # fit <- unitregTMB(Y ~ educ, data = da, family = vasicek())
+#' # print(fit)
+#' }
 #' @export
 print.unitregTMB <- function(x, digits = 4, ...) {
   cat("\nCall:  ", paste(deparse(x$call), collapse = "\n"), "\n\n", sep = "")
@@ -311,9 +309,6 @@ print.unitregTMB <- function(x, digits = 4, ...) {
   invisible(x)
 }
 
-## ----------------------------------------------------------------------------
-## gof.unitregTMB -------------------------------------------------------------
-## ----------------------------------------------------------------------------
 #' @title Goodness-of-Fit Measures
 #' 
 #' @description 
@@ -324,11 +319,11 @@ print.unitregTMB <- function(x, digits = 4, ...) {
 #' @param digits Number of significant digits to be used in the output.
 #' 
 #' @export
-gof <- function(object, ..., digits = 2) {
-  UseMethod("gof")
+gof_tab <- function(object, ..., digits = 2) {
+  UseMethod("gof_tab")
 }
 
-#' @title Goodness-of-Fit for unitregTMB Models
+#' @title Goodness-of-Fit Table for unitregTMB Models
 #' 
 #' @description 
 #' Computes and compares log-likelihood, AIC, and BIC for one or more fitted \code{unitregTMB} models.
@@ -337,10 +332,18 @@ gof <- function(object, ..., digits = 2) {
 #' @param ... Additional \code{unitregTMB} model objects for comparison.
 #' @param digits Number of significant digits to be used in the output.
 #' 
-#' @return An object of class \code{gof.unitregTMB} containing a list of computed metrics for each model.
+#' @return An object of class \code{gof_tab.unitregTMB} containing a list of computed metrics for each model.
 #' 
+#' @examples
+#' \donttest{
+#' # Assuming fit1 and fit2 are two fitted unitregTMB models:
+#' # fit1 <- unitregTMB(Y ~ educ, data = da, family = vasicek())
+#' # fit2 <- unitregTMB(Y ~ educ, data = da, family = kumaraswamy())
+#' # gof_tab(fit1, fit2)
+#' }
+#' @rdname gof_tab
 #' @export
-gof.unitregTMB <- function(object, ..., digits = 2) {
+gof_tab.unitregTMB <- function(object, ..., digits = 2) {
   models <- list(object, ...)
   
   results <- lapply(models, function(model) {
@@ -373,34 +376,31 @@ gof.unitregTMB <- function(object, ..., digits = 2) {
       BIC_val <- NA_real_
     }
     list(
-      model_name = if (!is.null(model$family)) model$family else "BoundedReg model",
+      model_name = if (!is.null(model$family)) model$family else "unitregTMB model",
       tau        = model$tau,
       logLik     = logLik_val,
       AIC        = AIC_val,
       BIC        = BIC_val
     )
   })
-  class(results) <- "gof.unitregTMB"
+  class(results) <- "gof_tab.unitregTMB"
   attr(results, "digits") <- digits
   return(results)
 }
 
-## ----------------------------------------------------------------------------
-## print.gof.unitregTMB ------------------------------------------------------- 
-## ----------------------------------------------------------------------------
 #' @title Print Goodness-of-Fit Measures
 #' 
 #' @description 
 #' Prints the compiled goodness-of-fit table for \code{unitregTMB} models.
 #' 
-#' @param x An object of class \code{gof.unitregTMB}.
+#' @param x An object of class \code{gof_tab.unitregTMB}.
 #' @param digits Number of significant digits to use when printing.
 #' @param ... Further arguments passed to or from other methods.
 #' 
-#' @return Invisibly returns the original \code{gof.unitregTMB} object.
+#' @return Invisibly returns the original \code{gof_tab.unitregTMB} object.
 #' 
 #' @export
-print.gof.unitregTMB <- function(x, digits = NULL, ...) {
+print.gof_tab.unitregTMB <- function(x, digits = NULL, ...) {
   
   if (is.null(digits)) {
     digits <- attr(x, "digits")
@@ -453,9 +453,7 @@ print.gof.unitregTMB <- function(x, digits = NULL, ...) {
   invisible(x)
 }
 
-## ----------------------------------------------------------------------------
-## coef.unitregTMB ------------------------------------------------------------
-## ----------------------------------------------------------------------------
+
 #' @title Extract Model Coefficients
 #' 
 #' @description 
@@ -469,6 +467,12 @@ print.gof.unitregTMB <- function(x, digits = NULL, ...) {
 #' 
 #' @return A numeric vector of estimated coefficients.
 #' 
+#' @examples
+#' \donttest{
+#' # fit <- unitregTMB(Y ~ educ, data = da, family = vasicek())
+#' # coef(fit, type = "all")
+#' # coef(fit, type = "mu")
+#' }
 #' @export
 coef.unitregTMB <- function(object, type = c("all", "mu", "phi", "p0", "p1"), ...) {
   
@@ -496,9 +500,6 @@ coef.unitregTMB <- function(object, type = c("all", "mu", "phi", "p0", "p1"), ..
   return(out)
 }
 
-## ----------------------------------------------------------------------------
-## logLik ---------------------------------------------------------------------
-## ----------------------------------------------------------------------------
 #' @title Extract Log-Likelihood
 #' 
 #' @description 
@@ -510,6 +511,10 @@ coef.unitregTMB <- function(object, type = c("all", "mu", "phi", "p0", "p1"), ..
 #' @return An object of class \code{logLik} containing the log-likelihood value, 
 #'   along with attributes for degrees of freedom (\code{df}) and number of observations (\code{nobs}).
 #' 
+#' @examples
+#' \donttest{
+#' # logLik(fit)
+#' }
 #' @export
 logLik.unitregTMB <- function(object, ...) {
   val <- object$logLik
@@ -522,9 +527,6 @@ logLik.unitregTMB <- function(object, ...) {
   return(val)
 }
 
-## ----------------------------------------------------------------------------
-## AIC ------------------------------------------------------------------------
-## ----------------------------------------------------------------------------
 #' @title Extract Akaike Information Criterion
 #' 
 #' @description 
@@ -537,15 +539,16 @@ logLik.unitregTMB <- function(object, ...) {
 #' 
 #' @return A numeric value representing the AIC.
 #' 
+#' @examples
+#' \donttest{
+#' # AIC(fit)
+#' }
 #' @export
 AIC.unitregTMB <- function(object, ..., k = 2) {
   ll <- logLik(object)
   return(stats::AIC(ll, k = k))
 }
 
-## ----------------------------------------------------------------------------
-## BIC ------------------------------------------------------------------------
-## ----------------------------------------------------------------------------
 #' @title Extract Bayesian Information Criterion
 #' 
 #' @description 
@@ -556,6 +559,10 @@ AIC.unitregTMB <- function(object, ..., k = 2) {
 #' 
 #' @return A numeric value representing the BIC.
 #' 
+#' @examples
+#' \donttest{
+#' # BIC(fit)
+#' }
 #' @export
 BIC.unitregTMB <- function(object, ...) {
   ll <- logLik(object)
@@ -570,12 +577,16 @@ BIC.unitregTMB <- function(object, ...) {
 #' 
 #' @param object A fitted \code{unitregTMB} model.
 #' @param parm A specification of which parameters are to be given confidence intervals, 
-#'        either a vector of numbers or a vector of names. If missing, all parameters are considered.
+#'         either a vector of numbers or a vector of names. If missing, all parameters are considered.
 #' @param level The confidence level required (default is 0.95).
 #' @param ... Additional arguments (currently ignored).
 #' 
 #' @return A matrix with columns giving lower and upper confidence limits for each parameter.
 #' 
+#' @examples
+#' \donttest{
+#' # confint(fit, level = 0.95)
+#' }
 #' @export
 confint.unitregTMB <- function(object, parm, level = 0.95, ...) {
   if (is.null(object$sd_report)) {
@@ -685,18 +696,24 @@ df.residual.unitregTMB <- function(object, ...) {
   return(object$nobs - object$npar)
 }
 
-#' @title Extract Fixed-Effects Estimates
-#' 
-#' @description 
-#' Extracts the fixed-effects estimates from a fitted \code{unitregTMB} model.
-#' 
-#' @param object An object of class \code{unitregTMB}.
-#' @param ... Further arguments passed to or from other methods.
-#' 
-#' @return An object of class \code{fixef.unitregTMB} containing the estimated fixed-effects.
-#' 
+#' Extract Fixed Effects
+#'
+#' Generic function to extract fixed effects from fitted models.
+#'
+#' @param object A fitted model object.
+#' @param ... Additional arguments.
 #' @export
-fixef.unitregTMB <- function(object, ...) {
+fixed_effects <- function(object, ...) 
+UseMethod("fixed_effects")
+
+#' Extract Fixed Effects from a unitregTMB Object
+#'
+#' @param object A fitted object of class "unitregTMB".
+#' @param ... Additional arguments.
+#' @return A numeric vector of fixed effects.
+#' @rdname fixed_effects
+#' @export
+fixed_effects.unitregTMB <- function(object, ...) {
   res <- object$model_coef
   class(res) <- "fixef.unitregTMB"
   return(res)
@@ -745,6 +762,10 @@ print.fixef.unitregTMB <- function(x, digits = max(3, getOption("digits") - 3), 
 #' 
 #' @return A design matrix representing the chosen model component.
 #' 
+#' @examples
+#' \donttest{
+#' # model.matrix(fit, component = "mu")
+#' }
 #' @export
 model.matrix.unitregTMB <- function(object, component = c("mu", "phi", "p0", "p1"), ...) {
   component <- match.arg(component)
@@ -767,6 +788,10 @@ model.matrix.unitregTMB <- function(object, component = c("mu", "phi", "p0", "p1
 #' 
 #' @return An object of class \code{formula}.
 #' 
+#' @examples
+#' \donttest{
+#' # formula(fit, component = "phi")
+#' }
 #' @export
 formula.unitregTMB <- function(x, component = c("mu", "phi", "p0", "p1"), ...) {
   component <- match.arg(component)
@@ -797,6 +822,11 @@ formula.unitregTMB <- function(x, component = c("mu", "phi", "p0", "p1"), ...) {
 #' 
 #' @return A numeric vector of fitted values corresponding to the specified \code{type}.
 #' 
+#' @examples
+#' \donttest{
+#' # fitted(fit, type = "response")
+#' # fitted(fit, type = "phi")
+#' }
 #' @export
 fitted.unitregTMB <- function(object, type = c("response", "mu", "phi", "p0", "p1"), ...) {
   
@@ -867,9 +897,6 @@ fitted.unitregTMB <- function(object, type = c("response", "mu", "phi", "p0", "p
   return(fitted_resp)
 }
 
-## ----------------------------------------------------------------------------
-## vcov.unitregTMB ------------------------------------------------------------
-## ----------------------------------------------------------------------------
 #' @title Extract Variance-Covariance Matrix
 #' 
 #' @description 
@@ -880,6 +907,10 @@ fitted.unitregTMB <- function(object, type = c("response", "mu", "phi", "p0", "p
 #' 
 #' @return A numeric matrix representing the estimated covariances between the parameter estimates.
 #' 
+#' @examples
+#' \donttest{
+#' # vcov(fit)
+#' }
 #' @export
 vcov.unitregTMB <- function(object, ...) {
   
@@ -916,5 +947,3 @@ vcov.unitregTMB <- function(object, ...) {
   
   return(V_fixed)
 }
-
-## END ------------------------------------------------------------------------

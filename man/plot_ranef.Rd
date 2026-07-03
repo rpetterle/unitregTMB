@@ -13,6 +13,25 @@ plot_ranef(object, level = 0.95, ...)
 
 \item{...}{Additional graphical parameters passed to \code{plot}.}
 }
+\value{
+Invisibly returns a \code{data.frame} containing the sorted estimated random effects 
+  (BLUPs), their standard errors, and the lower and upper bounds of the confidence intervals.
+}
 \description{
-Plot Conditional Modes (Caterpillar Plot) for unitregTMB
+Produces a caterpillar plot of the conditional modes (BLUPs) of the random effects 
+from a fitted \code{unitregTMB} model, along with their confidence intervals.
+}
+\examples{
+\donttest{
+# Assuming 'da' is your dataset and 'id' is a grouping variable:
+# fit <- unitregTMB(Y ~ educ + (1 | id), data = da, family = vasicek())
+# 
+# # Generate the caterpillar plot
+# plot_ranef(fit, level = 0.95)
+# 
+# # You can also save the data used for the plot
+# re_data <- plot_ranef(fit)
+# head(re_data)
+}
+
 }

@@ -35,8 +35,23 @@ or "inverse" to print the mathematical inverse function (e.g., \\Phi^{-1}).}
 
 \item{index_labels}{Logical; if TRUE (default), appends the domain bounds (e.g., for i = 1,...,N).}
 }
+\value{
+A character string (invisibly) containing the LaTeX code for the equations. 
+  The code is also printed to the console.
+}
 \description{
 Generates formatted LaTeX equations for fitted unitregTMB models, 
 supporting both symbolic and numeric representation. It automatically identifies 
 random effects and assigns proper indices to longitudinal/repeated measures.
+}
+\examples{
+\donttest{
+# Assuming 'fit' is a fitted unitregTMB model:
+# Extract the theoretical symbolic equation for the mean (mu)
+# extract_equations(fit, mode = "symbolic", component = "mu")
+
+# Extract the numeric fitted equation for all components with custom labels
+# eq <- extract_equations(fit, mode = "numeric", component = "all", 
+#                         custom_labels = c("educHS+" = "HighSchool"))
+}
 }

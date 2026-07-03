@@ -1,7 +1,7 @@
 #' @name JohnsonSB
 #' @aliases JohnsonSB djohnsonsb pjohnsonsb qjohnsonsb rjohnsonsb
 #' 
-#' @title The Johnson SB Distribution
+#' @title Johnson SB Distribution
 #' 
 #' @description 
 #' Density, distribution function, quantile function, and random number generation for the 

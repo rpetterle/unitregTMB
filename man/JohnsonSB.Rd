@@ -6,7 +6,7 @@
 \alias{pjohnsonsb}
 \alias{qjohnsonsb}
 \alias{rjohnsonsb}
-\title{The Johnson SB Distribution}
+\title{Johnson SB Distribution}
 \usage{
 djohnsonsb(x, mu, phi, tau = 0.5, log = FALSE)
 

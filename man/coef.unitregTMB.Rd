@@ -21,3 +21,10 @@ A numeric vector of estimated coefficients.
 \description{
 Extracts the estimated coefficients from a fitted \code{unitregTMB} model.
 }
+\examples{
+\donttest{
+# fit <- unitregTMB(Y ~ educ, data = da, family = vasicek())
+# coef(fit, type = "all")
+# coef(fit, type = "mu")
+}
+}

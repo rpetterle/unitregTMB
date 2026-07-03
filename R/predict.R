@@ -12,6 +12,20 @@
 #' 
 #' @return A vector or data.frame of predictions.
 #' 
+#' @examples
+#' \donttest{
+#' # Assuming 'da' is your dataset:
+#' # fit <- unitregTMB(Y ~ educ + refill, data = da, family = vasicek())
+#' #
+#' # # Predictions on the original dataset
+#' # head(predict(fit, type = "response"))
+#' # head(predict(fit, type = "parameter"))
+#' #
+#' # # Predictions on new data
+#' # new_data <- data.frame(educ = factor("HS+"), refill = factor("2"))
+#' # predict(fit, newdata = new_data, type = "response")
+#' }
+#' 
 #' @importFrom stats model.frame model.matrix model.offset na.pass terms delete.response plogis
 #' @export
 predict.unitregTMB <- function(object, newdata = NULL, 
@@ -20,41 +34,17 @@ predict.unitregTMB <- function(object, newdata = NULL,
   
   type <- match.arg(type)
   
-  
-  ## 1. Base Case: No newdata provided (Uses the object's training data)
   if (is.null(newdata)) {
-    n_obs <- object$nobs
-    mu_val <- object$fitted.values$conditional
+    mu_val  <- fitted(object, type = "mu")
+    phi_val <- fitted(object, type = "phi")
+    p0_val  <- fitted(object, type = "p0")
+    p1_val  <- fitted(object, type = "p1")
     
-    X_phi <- object$obj$env$data$X_phi
-    eta_phi <- as.vector(X_phi %*% object$model_coef$phi)
-    
-    linkobj_phi <- stats::make.link(object$family_object$phi_link_r_name)
-    phi_val <- linkobj_phi$linkinv(eta_phi)
-
-    ## Bivariate-logit reconstruction for training data
-    eta_p0 <- if (object$has_p0) as.vector(object$obj$env$data$X_p0 %*% object$model_coef$p0) else rep(0, n_obs)
-    eta_p1 <- if (object$has_p1) as.vector(object$obj$env$data$X_p1 %*% object$model_coef$p1) else rep(0, n_obs)
-    
-    if (object$has_p0 && object$has_p1) {
-      denom <- 1 + exp(eta_p0) + exp(eta_p1)
-      p0_val <- exp(eta_p0) / denom
-      p1_val <- exp(eta_p1) / denom
-    } else if (object$has_p0) {
-      p0_val <- stats::plogis(eta_p0)
-      p1_val <- rep(0, n_obs)
-    } else if (object$has_p1) {
-      p0_val <- rep(0, n_obs)
-      p1_val <- stats::plogis(eta_p1)
-    } else {
-      p0_val <- rep(0, n_obs)
-      p1_val <- rep(0, n_obs)
-    }
-
     if (type == "link") {
       link_obj <- object$link.mu
       return(link_obj$linkfun(mu_val))
     } 
+    
     if (type == "parameter") {
       return(data.frame(mu = mu_val, phi = phi_val, p0 = p0_val, p1 = p1_val))
     }
@@ -63,11 +53,6 @@ predict.unitregTMB <- function(object, newdata = NULL,
     return(expected_response)
   }
   
-  # ===========================================================================
-  # 2. Complex Case: New data provided (newdata)
-  # ===========================================================================
-  
-  # 2.1. Construction of Prediction Matrices for Fixed Effects
   fixed_form <- reformulas::nobars(object$formula)
   
   tt_mu <- delete.response(terms(fixed_form))
@@ -86,7 +71,6 @@ predict.unitregTMB <- function(object, newdata = NULL,
   eta_mu  <- as.vector(X_mu %*% object$model_coef$mu) + offset_new
   eta_phi <- as.vector(X_phi %*% object$model_coef$phi)
   
-  ## 2.2. Random Effects 
   if (object$has_random_effects_mu) {
     tryCatch({
       re_list <- reformulas::findbars(object$formula)
@@ -135,7 +119,6 @@ predict.unitregTMB <- function(object, newdata = NULL,
     })
   }
   
-  ## 2.3. Zero-One inflation models (bivariate-logit)
   n_new <- nrow(newdata)
   eta_p0 <- rep(0, n_new)
   eta_p1 <- rep(0, n_new)
@@ -169,14 +152,12 @@ predict.unitregTMB <- function(object, newdata = NULL,
     p1_val <- rep(0, n_new)
   }
   
-  # 2.4. Transformation back to the Parameter Space
   link_obj <- object$link.mu
   mu_val   <- link_obj$linkinv(eta_mu)
 
   linkobj_phi <- stats::make.link(object$family_object$phi_link_r_name)
   phi_val <- linkobj_phi$linkinv(eta_phi)
   
-  ## 3. Returns based on 'type'
   if (type == "link") return(eta_mu)
   
   if (type == "parameter") {

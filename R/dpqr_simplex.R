@@ -1,7 +1,7 @@
 #' @name Simplex
 #' @aliases Simplex dsimplex psimplex qsimplex rsimplex
 #' 
-#' @title The Simplex Distribution
+#' @title Simplex Distribution
 #' 
 #' @description 
 #' Density, distribution function, quantile function, and random number generation for the 

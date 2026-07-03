@@ -1,9 +1,34 @@
-#' Generate Methods Section Text for unitregTMB
+#' @title Generate Methods Section Text for unitregTMB
+#' 
+#' @description 
+#' Generates a boilerplate "Methods" section text for academic papers, describing 
+#' the statistical model fitted with \code{unitregTMB}. It dynamically detects 
+#' the distribution family, link function, presence of zero/one inflation, 
+#' and random effects, writing the text in either English or Portuguese.
+#' 
+#' @param model A fitted \code{unitregTMB} object.
+#' @param language Character string indicating the language for the generated text. 
+#'        Options are \code{"en"} for English (default) or \code{"pt"} for Portuguese.
+#' 
+#' @return A list (invisibly) containing two elements: \code{text} (the generated 
+#'   methods paragraph) and \code{bibtex} (the citation string). The text is also 
+#'   printed to the console.
+#' 
+#' @examples
+#' \donttest{
+#' # Assuming 'fit' is a fitted unitregTMB model:
+#' # Generate text in English
+#' # write_methods(fit, language = "en")
+#' 
+#' # Generate text in Portuguese and save to an object
+#' # methods_output <- write_methods(fit, language = "pt")
+#' # methods_output$text
+#' }
+#' 
 #' @export
 write_methods <- function(model, language = c("en", "pt")) {
   lang <- match.arg(language)
   
-  # --- 1. Lógica da Família (Respeitando family$name) ---
   if (inherits(model$family, "unitregTMBFamily") || is.list(model$family)) {
     f_name <- model$family$name
     l_name <- model$family$link_r_name
@@ -11,17 +36,13 @@ write_methods <- function(model, language = c("en", "pt")) {
     link_text_pt <- sprintf("função de ligação %s", l_name)
     if(!is.null(model$family$tau)) f_name <- paste0(f_name, " ($\\tau = ", model$family$tau, "$)")
   } else {
-    # Fallback seguro para quando family é apenas um texto (ex: "Beta (mean)")
     f_name <- if (!is.null(model$family)) as.character(model$family) else "Unknown"
     link_text_en <- "its specified link function"
     link_text_pt <- "sua função de ligação especificada"
   }
   
-  # --- 2. Checagem de Efeitos Aleatórios ---
-  # Garante que lê tanto se estiver na raiz do modelo quanto dentro dos dados do TMB
   has_re <- isTRUE(model$has_random_effects_mu) || isTRUE(model$obj$env$data$has_random_effects_mu == 1)
   
-  # --- 3. Checagem de Inflações ---
   has_p0 <- isTRUE(model$has_p0_inflation) || isTRUE(model$obj$env$data$has_p0_inflation == 1)
   has_p1 <- isTRUE(model$has_p1_inflation) || isTRUE(model$obj$env$data$has_p1_inflation == 1)
   
@@ -38,7 +59,6 @@ write_methods <- function(model, language = c("en", "pt")) {
     zoi_text_pt <- " Para considerar uns exatos, uma estrutura de mistura inflacionada de uns foi incorporada."
   }
   
-  # --- 4. Construção do Texto Baseado no Tipo de Modelo ---
   if (lang == "en") {
     
     if (has_re) {
@@ -74,9 +94,20 @@ write_methods <- function(model, language = c("en", "pt")) {
     )
   }
   
-  # --- 5. Impressão ---
+  wrapped_text <- paste(strwrap(text, width = 80), collapse = "\n")
+  
+  citation_bib <- "@Manual{unitregTMB2026,
+  title = {unitregTMB: Regression Models for Correlated Continuous Bounded Data},
+  author = {Ricardo Rasmussen Petterle},
+  year = {2026},
+  note = {R package version 0.1.0},
+  url = {https://github.com/rpetterle/unitregTMB}
+}"
+  
   cat("\n------------------------------------------------------------\nSUGGESTED METHODS TEXT:\n------------------------------------------------------------\n")
-  cat(strwrap(text, width = 80), sep = "\n")
-  cat("\n\n------------------------------------------------------------\nCITATION:\n------------------------------------------------------------\n")
-  cat("@Manual{unitregTMB2026,\n  title = {unitregTMB: A Unified Framework for Bounded Data Regression},\n  author = {Ricardo R. Petterle},\n  year = {2026},\n  note = {R package version 0.1.0}\n}\n")
+  cat(wrapped_text, "\n")
+  cat("\n------------------------------------------------------------\nCITATION:\n------------------------------------------------------------\n")
+  cat(citation_bib, "\n")
+  
+  invisible(list(text = text, bibtex = citation_bib))
 }

@@ -1,9 +1,16 @@
+#' @title Diagnostic Plots with Simulated Envelopes
+#' 
+#' @description 
+#' Generic function to produce diagnostic probability plots with simulated envelopes.
+#' 
+#' @param object A fitted model object.
+#' @param ... Additional arguments.
 #' @export
-hnp <- function(object, ...) {
-  UseMethod("hnp")
+plot_envelope <- function(object, ...) {
+  UseMethod("plot_envelope")
 }
 
-#' Half-Normal Plots with Simulated Envelopes for unitregTMB
+#' Diagnostic Plots with Simulated Envelopes for unitregTMB
 #' 
 #' @description 
 #' Produces a (half-)normal probability plot with a simulated envelope for a fitted
@@ -18,23 +25,39 @@ hnp <- function(object, ...) {
 #' @param level Confidence level of the simulated envelope. Default is 0.95.
 #' @param resid.type Type of residuals to be used: \code{"quantile"} (default) or \code{"cox-snell"}.
 #' @param ncpus Number of cores to use for parallel computing. Default is 1.
+#' @param show.progress logical. Should a progress bar and messages be displayed? Default is \code{TRUE}.
 #' @param ... Additional arguments passed to the \code{plot} function.
 #' 
 #' @return A list (invisibly) containing the observed residuals (\code{res_obs}) and a matrix 
 #'         with the lower and upper bounds of the simulated envelope (\code{envelope}).
 #' 
+#' @examples
+#' \donttest{
+#' # Assuming 'da' is your dataset and you have fitted a model:
+#' # fit <- unitregTMB(Y ~ educ + refill + (1 | id), 
+#' #                   phi.formula = ~ refill,
+#' #                   family = vasicek(model_for = "mean"),  
+#' #                   data = da)
+#' # 
+#' # # Generate the envelope plot (runs sequentially with progress bar by default)
+#' # plot_envelope(fit, nsim = 99)
+#' #
+#' # # Run in parallel silently
+#' # plot_envelope(fit, nsim = 99, ncpus = 2, show.progress = FALSE)
+#' }
+#' 
 #' @importFrom stats qnorm qexp quantile median plogis
 #' @importFrom graphics plot lines points grid
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #' @importFrom parallel makeCluster stopCluster parLapply clusterExport clusterEvalQ
+#' @rdname plot_envelope
 #' @export
-hnp.unitregTMB <- function(object, nsim = 99, halfnormal = TRUE, plot = TRUE, 
-                           level = 0.95, resid.type = c("quantile", "cox-snell"), 
-                           ncpus = 1, ...) {
+plot_envelope.unitregTMB <- function(object, nsim = 99, halfnormal = TRUE, plot = TRUE, 
+                                     level = 0.95, resid.type = c("quantile", "cox-snell"), 
+                                     ncpus = 1, show.progress = TRUE, ...) {
   
   resid.type <- match.arg(resid.type)
   
-  # 1. Preparation
   n <- object$nobs
   tau <- object$tau 
   family_code <- object$obj$env$data$family
@@ -47,7 +70,6 @@ hnp.unitregTMB <- function(object, nsim = 99, halfnormal = TRUE, plot = TRUE,
   
   res_sim <- matrix(NA, nrow = n, ncol = nsim)
   
-  # 2. Ultra-Fast Refit Settings
   ctrl_fast <- object$control
   ctrl_fast$sd.report <- FALSE 
   ctrl_fast$get.joint.precision <- FALSE
@@ -88,9 +110,6 @@ hnp.unitregTMB <- function(object, nsim = 99, halfnormal = TRUE, plot = TRUE,
   has_re <- object$has_random_effects_mu
   random_args <- if(has_re) "u_mu" else NULL
   
-  # ---------------------------------------------------------------------------
-  # Função Trabalhadora 
-  # ---------------------------------------------------------------------------
   simulate_and_refit <- function(i) {
     dt_tmb <- dt_tmb_base
     pars_init <- pars_init_base
@@ -153,11 +172,8 @@ hnp.unitregTMB <- function(object, nsim = 99, halfnormal = TRUE, plot = TRUE,
     return(rep(NA, n))
   }
   
-  # ---------------------------------------------------------------------------
-  # 3. Execução
-  # ---------------------------------------------------------------------------
   if (ncpus > 1) {
-    cat(sprintf("Simulating envelope with %d core(s)...\n", ncpus))
+    if (show.progress) cat(sprintf("Simulating envelope with %d core(s)...\n", ncpus))
     cl <- parallel::makeCluster(ncpus)
     parallel::clusterEvalQ(cl, { try(library(unitregTMB), silent = TRUE) })
     parallel::clusterExport(cl, varlist = ls(envir = .GlobalEnv))
@@ -173,16 +189,19 @@ hnp.unitregTMB <- function(object, nsim = 99, halfnormal = TRUE, plot = TRUE,
     for (i in 1:nsim) res_sim[, i] <- res_list[[i]]
     
   } else {
-    cat("Simulating envelope...\n")
-    pb <- txtProgressBar(min = 0, max = nsim, style = 3)
+    if (show.progress) {
+      cat("Simulating envelope...\n")
+      pb <- txtProgressBar(min = 0, max = nsim, style = 3)
+    }
+    
     for(i in 1:nsim) {
       res_sim[, i] <- simulate_and_refit(i)
-      setTxtProgressBar(pb, i)
+      if (show.progress) setTxtProgressBar(pb, i)
     }
-    close(pb)
+    
+    if (show.progress) close(pb)
   }
   
-  # 4. Envelope Processing
   failed <- apply(res_sim, 2, function(x) any(is.na(x)))
   if(any(failed)) {
     warning(paste(sum(failed), "simulations failed or diverged. Envelope calculated with remaining valid fits."))
@@ -192,7 +211,6 @@ hnp.unitregTMB <- function(object, nsim = 99, halfnormal = TRUE, plot = TRUE,
   
   res_obs_raw <- residuals(object, type = resid.type)
   
-  # Sorting Logic
   if (resid.type == "cox-snell") {
     res_obs <- sort(res_obs_raw)
     res_sim <- apply(res_sim, 2, sort, na.last = NA)
@@ -220,32 +238,22 @@ hnp.unitregTMB <- function(object, nsim = 99, halfnormal = TRUE, plot = TRUE,
   res_upr <- apply(res_sim, 1, stats::quantile, probs = 1 - alpha, na.rm = TRUE)
   res_mid <- apply(res_sim, 1, stats::median, na.rm = TRUE)
   
-  # =========================================================================
-  # 5. Graphical Plotting (Ggplot2 "theme_bw" style using Base R)
-  # =========================================================================
   if (plot) {
     Ry <- range(c(res_lwr, res_upr, res_obs), na.rm = TRUE)
     Rx <- range(res_teo, na.rm = TRUE)
     
-    # Base vazia com títulos e painel limpo
     graphics::plot(res_teo, res_obs, ylim = Ry, xlim = Rx, type = "n",
                    xlab = "Theoretical quantiles", 
                    ylab = ylab_txt, 
                    main = object$family, 
                    bty = "o", 
                    panel.first = {
-                     # Adiciona a grelha cinza claro antes das linhas
                      graphics::grid(col = "gray92", lty = 1, lwd = 1.2)
                    }, ...)
     
-    # Limites do Envelope (Linhas Azuis Sólidas)
     graphics::lines(res_teo, res_lwr, lty = 1, col = "#0066CC", lwd = 1.8)
     graphics::lines(res_teo, res_upr, lty = 1, col = "#0066CC", lwd = 1.8)
-    
-    # Linha Mediana (Preta Tracejada)
     graphics::lines(res_teo, res_mid, lty = 2, col = "black", lwd = 1.5)
-    
-    # Pontos Observados (Cruzes Pretas)
     graphics::points(res_teo, res_obs, pch = 3, col = "black", cex = 0.8)
   } 
   

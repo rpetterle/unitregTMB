@@ -32,3 +32,18 @@ A vector or data.frame of predictions.
 \description{
 Obtains predictions from a fitted \code{unitregTMB} object.
 }
+\examples{
+\donttest{
+# Assuming 'da' is your dataset:
+# fit <- unitregTMB(Y ~ educ + refill, data = da, family = vasicek())
+#
+# # Predictions on the original dataset
+# head(predict(fit, type = "response"))
+# head(predict(fit, type = "parameter"))
+#
+# # Predictions on new data
+# new_data <- data.frame(educ = factor("HS+"), refill = factor("2"))
+# predict(fit, newdata = new_data, type = "response")
+}
+
+}

@@ -28,3 +28,9 @@ Computes the fitted values for a \code{unitregTMB} model. This method reconstruc
 predictors using the original design matrices stored in the TMB object environment
 and the optimized parameters (including random effects and offsets).
 }
+\examples{
+\donttest{
+# fitted(fit, type = "response")
+# fitted(fit, type = "phi")
+}
+}

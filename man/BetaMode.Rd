@@ -6,7 +6,7 @@
 \alias{pbeta_mode}
 \alias{qbeta_mode}
 \alias{rbeta_mode}
-\title{The Beta Distribution (Mode Parameterization)}
+\title{Beta Distribution (Mode Parameterization)}
 \usage{
 dbeta_mode(x, mu, phi, log = FALSE)
 

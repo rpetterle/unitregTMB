@@ -1,7 +1,7 @@
 #' @name UnitWeibull
 #' @aliases UnitWeibull duweibull puweibull quweibull ruweibull
 #' 
-#' @title The Unit-Weibull Distribution
+#' @title Unit-Weibull Distribution
 #' 
 #' @description 
 #' Density, distribution function, quantile function, and random number generation for the 

@@ -17,3 +17,8 @@ A numeric matrix representing the estimated covariances between the parameter es
 \description{
 Extracts the variance-covariance matrix of the main parameters of a fitted \code{unitregTMB} model.
 }
+\examples{
+\donttest{
+# vcov(fit)
+}
+}

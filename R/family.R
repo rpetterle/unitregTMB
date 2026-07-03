@@ -1,17 +1,18 @@
-###############################################################################
-## unitregTMB: An R package for modeling correlated continuous bounded data ---
-## Author: Ricardo Rasmussen Petterle UFPR ------------------------------------
-###############################################################################
-
 #' @name unitregTMB-families
 #' @title Family Objects for unitregTMB Models
 #' @description 
 #' Functions to specify the distribution family and link function for \code{unitregTMB} models.
+#' 
+#' @param model_for Character string indicating the parameterization to be used 
+#'   (e.g., \code{"mean"}, \code{"mode"}, or \code{"quantile"}).
+#' @param link Character string specifying the link function for the location parameter. 
+#'   Supported links are \code{"logit"}, \code{"probit"}, \code{"cloglog"}, and \code{"cauchit"}.
+#' @param tau Numeric value between 0 and 1 indicating the quantile to be modeled 
+#'   (only applicable when \code{model_for = "quantile"}). Default is 0.5.
+#' 
+#' @return An object of class \code{unitregTMBFamily} containing the family details and link functions.
 NULL
 
-# ==============================================================================
-# INTERNAL HELPER
-# ==============================================================================
 create_family_object <- function(name, tmb_id, link, tau = NULL, phi_link = "log") {
   link_id <- switch(link,
                     "logit"   = 0L,
@@ -54,11 +55,6 @@ print.unitregTMBFamily <- function(x, ...) {
   invisible(x)
 }
 
-# ==============================================================================
-# FAMILY DEFINITIONS
-# ==============================================================================
-
-# --- Grupo Média (0 - 4) ---
 #' @rdname unitregTMB-families
 #' @export
 beta_fam <- function(model_for = c("mean", "mode"), link = "logit") {
@@ -136,7 +132,7 @@ unitgompertz <- function(model_for = c("mode", "quantile"), link = "logit", tau 
 
 #' @rdname unitregTMB-families
 #' @export
-unitweibull <- function(model_for = c("quantile"), tau = 0.5, link = "logit") {
+unitweibull <- function(model_for = c("quantile"), link = "logit", tau = 0.5) {
   model_target <- match.arg(model_for)
   if (!is.numeric(tau) || tau <= 0 || tau >= 1) stop("tau must be in (0,1).", call. = FALSE)
   create_family_object("Unit-Weibull (quantile)", 11, link, tau)
@@ -144,7 +140,7 @@ unitweibull <- function(model_for = c("quantile"), tau = 0.5, link = "logit") {
 
 #' @rdname unitregTMB-families
 #' @export
-johnsonsb <- function(model_for = c("quantile"), tau = 0.5, link = "logit") {
+johnsonsb <- function(model_for = c("quantile"), link = "logit", tau = 0.5) {
   model_target <- match.arg(model_for)
   if (!is.numeric(tau) || tau <= 0 || tau >= 1) stop("tau must be in (0,1).", call. = FALSE)
   create_family_object("Johnson SB (quantile)", 13, link, tau)
@@ -152,7 +148,7 @@ johnsonsb <- function(model_for = c("quantile"), tau = 0.5, link = "logit") {
 
 #' @rdname unitregTMB-families
 #' @export
-ashw <- function(model_for = c("quantile"), tau = 0.5, link = "logit") {
+ashw <- function(model_for = c("quantile"), link = "logit", tau = 0.5) {
   model_target <- match.arg(model_for)
   if (!is.numeric(tau) || tau <= 0 || tau >= 1) stop("tau must be in (0,1).", call. = FALSE)
   create_family_object("ASHW (quantile)", 14, link, tau)
@@ -160,7 +156,7 @@ ashw <- function(model_for = c("quantile"), tau = 0.5, link = "logit") {
 
 #' @rdname unitregTMB-families
 #' @export
-ubs <- function(model_for = c("quantile"), tau = 0.5, link = "logit") {
+ubs <- function(model_for = c("quantile"), link = "logit", tau = 0.5) {
   model_target <- match.arg(model_for)
   if (!is.numeric(tau) || tau <= 0 || tau >= 1) stop("tau must be in (0,1).", call. = FALSE)
   create_family_object("Unit-Birnbaum-Saunders (quantile)", 15, link, tau)

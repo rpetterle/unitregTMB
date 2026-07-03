@@ -37,8 +37,8 @@ and the corresponding p-value.
 \examples{
 \dontrun{
 # Assuming fit1 and fit2 are fitted unitregTMB models
-# fit1 <- unitregTMB(y ~ x1, data = da, family = "beta")
-# fit2 <- unitregTMB(y ~ x1 + x2, data = da, family = "beta")
+# fit1 <- unitregTMB(y ~ x1, data = da, family = unitgamma)
+# fit2 <- unitregTMB(y ~ x1 + x2, data = da, family = unitgamma)
 # anova(fit1, fit2)
 }
 

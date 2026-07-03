@@ -10,7 +10,7 @@
 \alias{pvasicek_quantile}
 \alias{qvasicek_quantile}
 \alias{rvasicek_quantile}
-\title{The Vasicek Distribution}
+\title{Vasicek Distribution}
 \usage{
 dvasicek_mean(x, mu, phi, log = FALSE)
 

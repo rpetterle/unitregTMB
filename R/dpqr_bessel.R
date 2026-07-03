@@ -1,7 +1,7 @@
 #' @name Bessel
 #' @aliases Bessel dbessel pbessel qbessel rbessel
 #' 
-#' @title Bessel Regression Distribution
+#' @title Bessel Distribution
 #'
 #' @description 
 #' Density, distribution function, quantile function and random generation for 

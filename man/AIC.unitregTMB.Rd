@@ -20,3 +20,8 @@ A numeric value representing the AIC.
 \description{
 Extracts the Akaike Information Criterion (AIC) of a fitted \code{unitregTMB} model.
 }
+\examples{
+\donttest{
+# AIC(fit)
+}
+}

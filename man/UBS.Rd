@@ -6,7 +6,7 @@
 \alias{pubs}
 \alias{qubs}
 \alias{rubs}
-\title{The Unit-Birnbaum-Saunders (UBS) Distribution}
+\title{Unit-Birnbaum-Saunders (UBS) Distribution}
 \usage{
 dubs(x, mu, phi, tau = 0.5, log = FALSE)
 

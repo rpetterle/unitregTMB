@@ -21,3 +21,8 @@ A design matrix representing the chosen model component.
 \description{
 Extracts the design matrix for a specific model component of a \code{unitregTMB} object.
 }
+\examples{
+\donttest{
+# model.matrix(fit, component = "mu")
+}
+}

@@ -19,3 +19,9 @@ Invisibly returns the original \code{unitregTMB} object.
 \description{
 Prints the basic information and estimated coefficients of a fitted \code{unitregTMB} model.
 }
+\examples{
+\donttest{
+# fit <- unitregTMB(Y ~ educ, data = da, family = vasicek())
+# print(fit)
+}
+}
