@@ -1,12 +1,5 @@
-#' Extract Random Effects
+#' @name random_effects.unitregTMB
 #'
-#' Generic function to extract random effects from fitted models.
-#'
-#' @param object A fitted model object.
-#' @param ... Additional arguments.
-#' @export
-random_effects <- function(object, ...) UseMethod("random_effects")
-
 #' @title Extract Random Effects (BLUPs) from a unitregTMB Object
 #' 
 #' @description 
@@ -28,7 +21,7 @@ random_effects <- function(object, ...) UseMethod("random_effects")
 #' # re <- random_effects(fit)
 #' # head(re$id)
 #' }
-#' @rdname random_effects
+#' @rdname random_effects_unitregTMB
 #' @export
 random_effects.unitregTMB <- function(object, ...) {
   

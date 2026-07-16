@@ -1,3 +1,5 @@
+#' @name plot_ranef.unitregTMB
+#' 
 #' @title Plot Conditional Modes (Caterpillar Plot) for unitregTMB
 #' 
 #' @description 
@@ -26,8 +28,9 @@
 #' 
 #' @importFrom stats qnorm
 #' @importFrom graphics plot abline segments points grid
+#' @rdname plot_ranef_unitregTMB
 #' @export
-plot_ranef <- function(object, level = 0.95, ...) {
+plot_ranef.unitregTMB <- function(object, level = 0.95, ...) {
   
   if (!object$has_random_effects_mu) {
     stop("This model does not contain random effects.")

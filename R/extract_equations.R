@@ -1,10 +1,12 @@
-#' Extract Model Equations in LaTeX Format for unitregTMB
+#' @name extract_equations.unitregTMB
+#' 
+#' @title Extract Model Equations in LaTeX Format for unitregTMB
 #' 
 #' @description Generates formatted LaTeX equations for fitted unitregTMB models, 
 #' supporting both symbolic and numeric representation. It automatically identifies 
 #' random effects and assigns proper indices to longitudinal/repeated measures.
 #' 
-#' @param model A fitted unitregTMB object.
+#' @param object A fitted unitregTMB object.
 #' @param mode Character; "symbolic" (default) for theoretical equations with greek letters, 
 #'        or "numeric" for fitted equations with estimated coefficients.
 #' @param component Character; specifies which submodel to extract: "mu", "phi", "p0", "p1", or "all".
@@ -15,9 +17,10 @@
 #' @param digits Integer; number of decimal places for numeric mode.
 #' @param custom_labels Named character vector; pairs of old variable names and desired new labels.
 #' @param index_labels Logical; if TRUE (default), appends the domain bounds (e.g., for i = 1,...,N).
+#' @param ... Additional arguments passed to methods.
 #' 
 #' @return A character string (invisibly) containing the LaTeX code for the equations. 
-#'   The code is also printed to the console.
+#'    The code is also printed to the console.
 #' 
 #' @examples
 #' \donttest{
@@ -29,31 +32,32 @@
 #' # eq <- extract_equations(fit, mode = "numeric", component = "all", 
 #' #                         custom_labels = c("educHS+" = "HighSchool"))
 #' }
+#' @rdname extract_equations_unitregTMB
 #' @export
-extract_equations <- function(model, mode = c("symbolic", "numeric"), 
-                              component = c("mu", "phi", "p0", "p1", "all"), 
-                              link_style = c("name", "inverse"),
-                              grouping_var = NULL, digits = 2, 
-                              custom_labels = NULL, index_labels = TRUE) {
+extract_equations.unitregTMB <- function(object, mode = c("symbolic", "numeric"), 
+                                         component = c("mu", "phi", "p0", "p1", "all"), 
+                                         link_style = c("name", "inverse"),
+                                         grouping_var = NULL, digits = 2, 
+                                         custom_labels = NULL, index_labels = TRUE, ...) {
   
   mode <- match.arg(mode)
   component <- match.arg(component)
   link_style <- match.arg(link_style)
   
-  sd_rep <- if (!is.null(model$sd_report)) model$sd_report else model$sdreport
+  sd_rep <- if (!is.null(object$sd_report)) object$sd_report else object$sdreport
   if (is.null(sd_rep) && mode == "numeric") {
     stop("Model must be fitted with standard errors (sdreport) to extract numeric equations.")
   }
   
   link_name <- "logit"
-  if (!is.null(model$link.mu) && !is.null(model$link.mu$name)) {
-    link_name <- model$link.mu$name[1]
-  } else if (is.list(model$family)) {
-    if (!is.null(model$family$link_r_name)) link_name <- model$family$link_r_name[1]
-    else if (!is.null(model$family$link)) link_name <- model$family$link[1]
+  if (!is.null(object$link.mu) && !is.null(object$link.mu$name)) {
+    link_name <- object$link.mu$name[1]
+  } else if (is.list(object$family)) {
+    if (!is.null(object$family$link_r_name)) link_name <- object$family$link_r_name[1]
+    else if (!is.null(object$family$link)) link_name <- object$family$link[1]
   }
   
-  has_re <- isTRUE(model$has_random_effects_mu) || isTRUE(model$obj$env$data$has_random_effects_mu == 1)
+  has_re <- isTRUE(object$has_random_effects_mu) || isTRUE(object$obj$env$data$has_random_effects_mu == 1)
   
   lhs_idx <- if (has_re && !is.null(grouping_var)) "{ij}" else "i"
   mu_symbol <- sprintf("\\mu_{%s}", lhs_idx)
@@ -97,6 +101,19 @@ extract_equations <- function(model, mode = c("symbolic", "numeric"),
     return(res)
   }
 
+  format_var_math <- function(v, custom_labels) {
+    if (!is.null(custom_labels) && v %in% names(custom_labels)) {
+      return(paste0("{", custom_labels[[v]], "}"))
+    }
+    parts <- strsplit(v, "_", fixed = TRUE)[[1]]
+    if (length(parts) == 0) return("")
+    if (length(parts) == 1) return(sprintf("\\mathrm{%s}", parts))
+    res <- sprintf("\\mathrm{%s}", parts[1])
+    for (p in 2:length(parts)) res <- paste0(res, "_{\\mathrm{", parts[p], "}")
+    res <- paste0(res, paste(rep("}", length(parts) - 1), collapse = ""))
+    return(paste0("{", res, "}"))
+  }
+
   comps_to_print <- if (component == "all") c("mu", "phi", "p0", "p1") else component
 
   lines_out <- c()
@@ -104,13 +121,13 @@ extract_equations <- function(model, mode = c("symbolic", "numeric"),
   if (mode == "symbolic") {
     
     if ("mu" %in% comps_to_print) {
-      fix_form <- reformulas::nobars(model$formula)
+      fix_form <- reformulas::nobars(object$formula)
       mt <- stats::terms(fix_form)
       term_labels <- attr(mt, "term.labels")
       
       re_names <- character(0)
-      if (has_re && !is.null(model$re_info_mu$cnms)) {
-        re_names <- model$re_info_mu$cnms[[1]]
+      if (has_re && !is.null(object$re_info_mu$cnms)) {
+        re_names <- object$re_info_mu$cnms[[1]]
       }
       
       rhs_mu <- c()
@@ -126,16 +143,13 @@ extract_equations <- function(model, mode = c("symbolic", "numeric"),
       }
       
       for (var in term_labels) {
-        print_var <- var
-        if (!is.null(custom_labels) && var %in% names(custom_labels)) print_var <- custom_labels[[var]]
-        safe_var <- gsub("_", "\\\\_", print_var)
-        
+        safe_var <- format_var_math(var, custom_labels)
         v_idx <- get_idx(var)
         
         if (var %in% re_names) {
-          rhs_mu <- c(rhs_mu, sprintf("(\\beta_{%d} + u_{%di})~\\texttt{%s}_{%s}", b_idx, b_idx, safe_var, v_idx))
+          rhs_mu <- c(rhs_mu, sprintf("(\\beta_{%d} + u_{%di})~%s_{%s}", b_idx, b_idx, safe_var, v_idx))
         } else {
-          rhs_mu <- c(rhs_mu, sprintf("\\beta_{%d}~\\texttt{%s}_{%s}", b_idx, safe_var, v_idx))
+          rhs_mu <- c(rhs_mu, sprintf("\\beta_{%d}~%s_{%s}", b_idx, safe_var, v_idx))
         }
         b_idx <- b_idx + 1
       }
@@ -145,9 +159,9 @@ extract_equations <- function(model, mode = c("symbolic", "numeric"),
     }
     
     components_sym <- list(
-      phi = list(name = "phi", lhs = sprintf("\\log(\\phi_{%s})", lhs_idx), form = model$phi.formula, sym = "\\psi"),
-      p0  = list(name = "p0",  lhs = sprintf("\\mathrm{logit}(p_{0%s})", lhs_idx), form = model$p0.formula, sym = "\\gamma"),
-      p1  = list(name = "p1",  lhs = sprintf("\\mathrm{logit}(p_{1%s})", lhs_idx), form = model$p1.formula, sym = "\\delta")
+      phi = list(name = "phi", lhs = sprintf("\\log(\\phi_{%s})", lhs_idx), form = object$phi.formula, sym = "\\psi"),
+      p0  = list(name = "p0",  lhs = sprintf("\\mathrm{logit}(p_{0%s})", lhs_idx), form = object$p0.formula, sym = "\\gamma"),
+      p1  = list(name = "p1",  lhs = sprintf("\\mathrm{logit}(p_{1%s})", lhs_idx), form = object$p1.formula, sym = "\\delta")
     )
     
     for (comp in intersect(names(components_sym), comps_to_print)) {
@@ -165,12 +179,10 @@ extract_equations <- function(model, mode = c("symbolic", "numeric"),
         }
         
         for (var in tls) {
-          print_var <- var
-          if (!is.null(custom_labels) && var %in% names(custom_labels)) print_var <- custom_labels[[var]]
-          safe_var <- gsub("_", "\\\\_", print_var)
+          safe_var <- format_var_math(var, custom_labels)
           v_idx <- get_idx(var)
           
-          rhs_c <- c(rhs_c, sprintf("%s_{%d}~\\texttt{%s}_{%s}", sym, b_c, safe_var, v_idx))
+          rhs_c <- c(rhs_c, sprintf("%s_{%d}~%s_{%s}", sym, b_c, safe_var, v_idx))
           b_c <- b_c + 1
         }
         lines_out <- c(lines_out, sprintf("  %s &= %s \\nonumber", components_sym[[comp]]$lhs, chunk_terms(rhs_c, chunk_size = 4, is_numeric = FALSE)))
@@ -196,18 +208,12 @@ extract_equations <- function(model, mode = c("symbolic", "numeric"),
         mat_name <- components_num[[comp]]$mat
         
         term_names <- rep(prefix, length(beta_vals))
-        if (!is.null(model$obj$env$data[[mat_name]])) {
-          real_names <- colnames(model$obj$env$data[[mat_name]])
+        if (!is.null(object$obj$env$data[[mat_name]])) {
+          real_names <- colnames(object$obj$env$data[[mat_name]])
           if (!is.null(real_names) && length(real_names) == length(beta_vals)) {
             term_names <- real_names
           }
         }
-        
-        if (!is.null(custom_labels)) {
-          matches <- match(term_names, names(custom_labels))
-          term_names[!is.na(matches)] <- custom_labels[matches[!is.na(matches)]]
-        }
-        term_names <- gsub("_", "\\\\_", term_names) 
         
         rhs_parts <- character(length(beta_vals))
         for (k in 1:length(beta_vals)) {
@@ -220,8 +226,9 @@ extract_equations <- function(model, mode = c("symbolic", "numeric"),
           if (term == "(Intercept)") {
             rhs_parts[k] <- sprintf(paste0("%.", digits, "f"), val)
           } else {
+            safe_term <- format_var_math(term, custom_labels)
             v_idx <- get_idx(term)
-            rhs_parts[k] <- sprintf("%s %s~\\texttt{%s}_{%s}", sign_str, val_str, term, v_idx)
+            rhs_parts[k] <- sprintf("%s %s~%s_{%s}", sign_str, val_str, safe_term, v_idx)
           }
         }
         
@@ -240,10 +247,10 @@ extract_equations <- function(model, mode = c("symbolic", "numeric"),
   }
   
   if (index_labels) {
-    n_i <- if (has_re && !is.null(model$re_info_mu)) model$re_info_mu$n_re_levels_list[1] else model$nobs
+    n_i <- if (has_re && !is.null(object$re_info_mu)) object$re_info_mu$n_re_levels_list[1] else object$nobs
     
     if (has_re && !is.null(grouping_var)) {
-      n_j <- round(model$nobs / n_i)
+      n_j <- round(object$nobs / n_i)
       lbl <- sprintf("  & \\quad \\text{for } i = 1, \\dots, %s \\quad \\text{and } j = 1, \\dots, %s \\nonumber", n_i, n_j)
     } else {
       lbl <- sprintf("  & \\quad \\text{for } i = 1, \\dots, %s \\nonumber", n_i)

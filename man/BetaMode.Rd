@@ -21,7 +21,7 @@ rbeta_mode(n, mu, phi)
 
 \item{mu}{vector of mode parameters (0 < mu < 1).}
 
-\item{phi}{vector of precision parameters (phi > 2).}
+\item{phi}{vector of precision parameters (phi > 0).}
 
 \item{log, log.p}{logical; if TRUE, probabilities p are given as log(p).}
 
@@ -37,9 +37,9 @@ Beta distribution parameterized by the mode \code{mu} and precision \code{phi}.
 }
 \details{
 The Beta distribution with mode \eqn{\mu} and precision \eqn{\phi} has shape parameters:
-\deqn{\alpha = \mu(\phi - 2) + 1}
-\deqn{\beta = (1 - \mu)(\phi - 2) + 1}
-where \eqn{0 < \mu < 1} and \eqn{\phi > 2}.
+\deqn{\alpha = \mu\phi + 1}
+\deqn{\beta = (1 - \mu)\phi + 1}
+where \eqn{0 < \mu < 1} and \eqn{\phi > 0}.
 }
 \examples{
 # 1. Set parameters

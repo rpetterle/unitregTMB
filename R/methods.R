@@ -309,20 +309,8 @@ print.unitregTMB <- function(x, digits = 4, ...) {
   invisible(x)
 }
 
-#' @title Goodness-of-Fit Measures
-#' 
-#' @description 
-#' Generic function to compute and compile goodness-of-fit measures for regression models.
-#' 
-#' @param object A fitted model object.
-#' @param ... Additional fitted model objects.
-#' @param digits Number of significant digits to be used in the output.
-#' 
-#' @export
-gof_tab <- function(object, ..., digits = 2) {
-  UseMethod("gof_tab")
-}
-
+#' @name gof_tab.unitregTMB
+#'
 #' @title Goodness-of-Fit Table for unitregTMB Models
 #' 
 #' @description 
@@ -341,7 +329,7 @@ gof_tab <- function(object, ..., digits = 2) {
 #' # fit2 <- unitregTMB(Y ~ educ, data = da, family = kumaraswamy())
 #' # gof_tab(fit1, fit2)
 #' }
-#' @rdname gof_tab
+#' @rdname gof_tab_unitregTMB
 #' @export
 gof_tab.unitregTMB <- function(object, ..., digits = 2) {
   models <- list(object, ...)
@@ -388,17 +376,8 @@ gof_tab.unitregTMB <- function(object, ..., digits = 2) {
   return(results)
 }
 
-#' @title Print Goodness-of-Fit Measures
-#' 
-#' @description 
-#' Prints the compiled goodness-of-fit table for \code{unitregTMB} models.
-#' 
+#' @rdname gof_tab_unitregTMB
 #' @param x An object of class \code{gof_tab.unitregTMB}.
-#' @param digits Number of significant digits to use when printing.
-#' @param ... Further arguments passed to or from other methods.
-#' 
-#' @return Invisibly returns the original \code{gof_tab.unitregTMB} object.
-#' 
 #' @export
 print.gof_tab.unitregTMB <- function(x, digits = NULL, ...) {
   
@@ -946,4 +925,74 @@ vcov.unitregTMB <- function(object, ...) {
   }
   
   return(V_fixed)
+}
+
+#' @title Update and Re-fit a unitregTMB Model
+#' 
+#' @description 
+#' \code{update} will update and (by default) re-fit a \code{unitregTMB} model. It 
+#' allows you to easily change the formula, data, or other arguments without having 
+#' to specify the entire model call again.
+#' 
+#' @param object A fitted \code{unitregTMB} model object.
+#' @param formula. Changes to the formula. This is a two-sided formula where the 
+#'   left-hand side is usually empty (e.g., \code{~ . + x3}). See \code{\link[stats]{update.formula}} for details.
+#' @param ... Additional arguments to the call, or arguments with changed values 
+#'   (e.g., \code{phi.formula}, \code{p0.formula}, \code{data}, \code{family}, \code{control}).
+#' @param evaluate Logical. If \code{TRUE} (default), the updated model is evaluated and re-fitted. 
+#'   If \code{FALSE}, the updated call is returned without evaluating.
+#' 
+#' @return A new \code{unitregTMB} model object (if \code{evaluate = TRUE}), 
+#'   or the unevaluated model call (if \code{evaluate = FALSE}).
+#' 
+#' @examples
+#' \donttest{
+#' # Assuming 'da' is your dataset:
+#' # fit1 <- unitregTMB(Y ~ educ, data = da, family = vasicek())
+#' #
+#' # # 1. Update the model by adding a covariate to the mean formula
+#' # fit2 <- update(fit1, formula. = ~ . + age)
+#' #
+#' # # 2. Update the model by adding a dispersion formula and changing the family
+#' # fit3 <- update(fit1, phi.formula = ~ educ, family = kumaraswamy())
+#' #
+#' # # 3. Just get the updated call without fitting (useful for debugging)
+#' # call_only <- update(fit1, phi.formula = ~ educ, evaluate = FALSE)
+#' # print(call_only)
+#' }
+#' 
+#' @importFrom stats update.formula
+#' @export
+update.unitregTMB <- function(object, formula., ..., evaluate = TRUE) {
+  
+  if (is.null(object$call)) {
+    stop("The model object does not contain a 'call' component.")
+  }
+  
+  call <- object$call
+  
+  extras <- match.call(expand.dots = FALSE)$...
+  
+  if (!missing(formula.)) {
+    call$formula <- stats::update.formula(object$formula, formula.)
+  }
+  
+  if (length(extras) > 0) {
+    existing <- !is.na(match(names(extras), names(call)))
+    
+    for (a in names(extras)[existing]) {
+      call[[a]] <- extras[[a]]
+    }
+    
+    if (any(!existing)) {
+      call <- c(as.list(call), extras[!existing])
+      call <- as.call(call)
+    }
+  }
+  
+  if (evaluate) {
+    eval(call, parent.frame())
+  } else {
+    call
+  }
 }

@@ -1,0 +1,225 @@
+---
+title: "Simulating Bounded Data with unitregTMB"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Simulating Bounded Data with unitregTMB}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+## Introduction
+
+The `unitregTMB` package provides a highly flexible framework for modeling continuous bounded data ($Y \in [0, 1]$), allowing for zero and one inflation, dispersion modeling, and correlated random effects.
+
+To facilitate model testing, power analysis, and reproducibility, the package includes a powerful native simulation function: `sim_unitreg()`. This vignette demonstrates how to simulate data from the simplest independent cases to complex longitudinal models with zero-and-one inflation.
+
+## Setup
+
+First, load the package:
+
+```{r setup}
+library(unitregTMB)
+```
+
+## 1. Independent data with fixed precision
+
+The simplest scenario involves simulating independent data (no repeated measures) using a beta distribution for the mean, containing only intercepts for $\mu$ and $\phi$.
+
+```{r ex1}
+# Fixed parameters (True)
+true_beta_mu  <- c(0.7)   # mu intercept (logit scale)
+true_beta_phi <- c(1.8)   # phi intercept (log scale)
+
+# Data simulation
+data_ex1 <- sim_unitreg(
+  n_id = 1000, n_rep = 1,
+  family = beta_fam(model_for = "mean", link = "logit"),
+  formula_mu = ~ 1,
+  formula_phi = ~ 1,
+  beta_mu = true_beta_mu,
+  beta_phi = true_beta_phi,
+  seed = 123
+)
+
+## Model fitting and comparison
+fit_ex1 <- unitregTMB(Y ~ 1, phi.formula = ~ 1, data = data_ex1, family = beta_fam())
+summary(fit_ex1)
+```
+
+```{r, results='asis'}
+extract_equations(fit_ex1)
+```
+
+## 2. Independent Data with Covariates in $\mu$ and $\phi$
+
+Here, we simulate from the Vasicek distribution. We introduce a continuous covariate (Normal) and a categorical one (Binomial) affecting the location, while the precision $\phi$ varies according to the binary covariate.
+
+```{r ex2}
+true_beta_mu  <- c(0.2, -0.4, 0.6)  # Intercept, x_norm, x_bin
+true_beta_phi <- c(1.5, 0.5)        # Intercept, x_bin
+
+data_ex2 <- sim_unitreg(
+  n_id = 800, n_rep = 1,
+  family = vasicek(model_for = "mean", link = "cauchit"),
+  formula_mu = ~ x_norm + x_bin,
+  formula_phi = ~ x_bin,
+  beta_mu = true_beta_mu,
+  beta_phi = true_beta_phi,
+  cov_config = list(
+    x_norm = list(dist = "normal", mean = 2, sd = 0.5),
+    x_bin  = list(dist = "binomial", size = 1, prob = 0.4)
+  ),
+  seed = 456
+)
+
+fit_ex2 <- unitregTMB(Y ~ x_norm + x_bin, 
+                      phi.formula = ~ x_bin, 
+                      family = vasicek(model_for = "mean", link = "cauchit"),
+                      data = data_ex2)
+summary(fit_ex2)
+```
+
+```{r, results='asis'}
+extract_equations(fit_ex2, link_style = "inverse")
+```
+
+## 3. Zero-Inflated Models
+
+Data bounded in $[0, 1)$ often present exact zeros. We can simulate zero-inflation using the $p_0$ parameter structure.
+
+```{r ex3}
+true_beta_mu  <- c(0.5, -0.3)  # Intercept, x_pois
+true_beta_phi <- c(2.0)        # Intercept
+true_beta_p0  <- c(-1.2, 0.4)  # Intercept, x_pois (logit scale of p0)
+
+data_ex3 <- sim_unitreg(
+  n_id = 1200, n_rep = 1,
+  family = unitgamma(model_for = "mode"),
+  formula_mu = ~ x_pois,
+  formula_p0 = ~ x_pois,
+  beta_mu = true_beta_mu,
+  beta_phi = true_beta_phi,
+  beta_p0 = true_beta_p0,
+  cov_config = list(x_pois = list(dist = "poisson", lambda = 1.5)),
+  seed = 789
+)
+
+fit_ex3 <- unitregTMB(Y ~ x_pois, p0.formula = ~ x_pois, data = data_ex3, family = unitgamma(model_for = "mode"))
+summary(fit_ex3, component = c("mu", "p0"))
+```
+
+```{r, results='asis'}
+extract_equations(fit_ex3, link_style = "inverse", component = "all")
+```
+
+## 4. Correlated Data (Random Intercept)
+
+For longitudinal or clustered data, `sim_unitreg` dynamically parses the `(1 | id)` syntax and generates correlated latent variables using the provided $\boldsymbol{\Sigma}$ covariance matrix.
+
+```{r ex4}
+true_beta_mu  <- c(-0.2, 0.5)  # Intercept, x_unif
+true_beta_phi <- c(1.2)        # Intercept
+true_Sigma    <- matrix(0.4, nrow = 1, ncol = 1) # Variance of the random intercept
+
+data_ex4 <- sim_unitreg(
+  n_id = 150, n_rep = 4,
+  family = vasicek(model_for = "quantile", tau = 0.25),
+  formula_mu = ~ x_unif + (1 | id),
+  beta_mu = true_beta_mu,
+  beta_phi = true_beta_phi,
+  Sigma = true_Sigma,
+  cov_config = list(x_unif = list(dist = "uniform", min = 0, max = 1)),
+  seed = 101
+)
+
+fit_ex4 <- unitregTMB(Y ~ x_unif + (1 | id), data = data_ex4, family = vasicek(model_for = "quantile", tau = 0.25))
+fit_ex4$random_effects_variance
+```
+
+## 5. Correlated Random Effects (Intercept and Slope)
+
+You can also simulate multivariate random effects, such as correlated random intercepts and slopes over time.
+
+```{r ex5}
+true_beta_mu  <- c(0.1, -0.5)  # Intercept, time
+true_beta_phi <- c(1.6)        # Intercept
+
+# 2x2 Sigma Matrix: Var(u0) = 0.36, Var(u1) = 0.16, Cov(u0, u1) = -0.05
+true_Sigma <- matrix(c(0.36, -0.05, 
+                      -0.05,  0.16), nrow = 2, ncol = 2)
+
+data_ex5 <- sim_unitreg(
+  n_id = 200, n_rep = 5,
+  family = kumaraswamy(model_for = "quantile", tau = 0.50),
+  formula_mu = ~ time + (1 + time | id),
+  beta_mu = true_beta_mu,
+  beta_phi = true_beta_phi,
+  Sigma = true_Sigma,
+  cov_config = list(time = list(dist = "normal", mean = 0, sd = 1)),
+  seed = 202
+)
+
+fit_ex5 <- unitregTMB(Y ~ time + (1 + time | id), data = data_ex5, family = kumaraswamy(model_for = "quantile", tau = 0.50))
+fit_ex5$random_effects_variance
+```
+
+## 6. The Complete Case (Mixed Effects + Zero-and-One Inflation)
+
+The ultimate test of the infrastructure: a longitudinal model featuring random intercepts, covariates in the dispersion model, and simultaneous zero-and-one inflation.
+
+```{r ex6}
+true_beta_mu  <- c(0.3, -0.4)  # Intercept, x_cov
+true_beta_phi <- c(1.2, 0.5)   # Intercept, x_cov
+true_beta_p0  <- c(-1.8)       # p0 intercept
+true_beta_p1  <- c(-2.2)       # p1 intercept 
+true_Sigma    <- matrix(0.25, nrow = 1, ncol = 1)
+
+data_ex6 <- sim_unitreg(
+  n_id = 300, n_rep = 4,
+  family = unitgamma(model_for = "mode", link = "probit"),
+  formula_mu = ~ x_cov + (1 | id),
+  formula_phi = ~ x_cov,
+  formula_p0 = ~ 1,
+  formula_p1 = ~ 1,
+  beta_mu = true_beta_mu,
+  beta_phi = true_beta_phi,
+  beta_p0 = true_beta_p0,
+  beta_p1 = true_beta_p1,
+  Sigma = true_Sigma,
+  cov_config = list(x_cov = list(dist = "normal", mean = 0, sd = 1)),
+  seed = 303
+)
+
+fit_ex6 <- unitregTMB(
+  formula = Y ~ x_cov + (1 | id),
+  phi.formula = ~ x_cov,
+  p0.formula = ~ 1,
+  p1.formula = ~ 1,
+  data = data_ex6,
+  family = unitgamma(model_for = "mode", link = "probit")
+)
+
+summary(fit_ex6)
+```
+
+```{r, results='asis'}
+extract_equations(fit_ex6, link_style = "inverse", component = "all")
+```
+
+```{r}
+write_methods(fit_ex6)
+```
+
+```{r}
+gof_tab(fit_ex6)
+```
+

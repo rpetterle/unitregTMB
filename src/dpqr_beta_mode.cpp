@@ -4,16 +4,16 @@
 using namespace Rcpp;
 
 // ============================================================================
-// Beta Distribution (Mode Parameterization)
+// Beta Distribution (Mode Parameterization - Shifted Precision)
 // Parameters:
 //   mu  : Mode (0 < mu < 1)
-//   phi : Precision (phi > 2)
+//   phi : Precision (phi > 0)
 //
 // Relations to shapes (alpha, beta):
-//   Let phi = alpha + beta
-//   Mode = (alpha - 1) / (phi - 2)
-//   => alpha = mu * (phi - 2) + 1
-//   => beta  = (1 - mu) * (phi - 2) + 1
+//   Let phi = alpha + beta - 2
+//   Mode = (alpha - 1) / (alpha + beta - 2)
+//   => alpha = mu * phi + 1
+//   => beta  = (1 - mu) * phi + 1
 // ============================================================================
 
 // [[Rcpp::export]]
@@ -31,14 +31,14 @@ NumericVector cpp_dbeta_mode(const NumericVector x,
     double cur_mu  = mu[i % nmu];
     double cur_phi = phi[i % nphi];
     
-    // Validation: phi must be > 2 for mode to be defined in (0,1)
-    if (cur_mu <= 0.0 || cur_mu >= 1.0 || cur_phi <= 2.0) {
+    // Validation: phi must be > 0 for mode to be defined in (0,1)
+    if (cur_mu <= 0.0 || cur_mu >= 1.0 || cur_phi <= 0.0) {
       out[i] = R_NaN;
       continue;
     }
     
-    double shape1 = cur_mu * (cur_phi - 2.0) + 1.0;
-    double shape2 = (1.0 - cur_mu) * (cur_phi - 2.0) + 1.0;
+    double shape1 = cur_mu * cur_phi + 1.0;
+    double shape2 = (1.0 - cur_mu) * cur_phi + 1.0;
     
     out[i] = R::dbeta(cur_x, shape1, shape2, log_prob ? 1 : 0);
   }
@@ -61,13 +61,13 @@ NumericVector cpp_pbeta_mode(const NumericVector q,
     double cur_mu  = mu[i % nmu];
     double cur_phi = phi[i % nphi];
     
-    if (cur_mu <= 0.0 || cur_mu >= 1.0 || cur_phi <= 2.0) {
+    if (cur_mu <= 0.0 || cur_mu >= 1.0 || cur_phi <= 0.0) {
       out[i] = R_NaN;
       continue;
     }
     
-    double shape1 = cur_mu * (cur_phi - 2.0) + 1.0;
-    double shape2 = (1.0 - cur_mu) * (cur_phi - 2.0) + 1.0;
+    double shape1 = cur_mu * cur_phi + 1.0;
+    double shape2 = (1.0 - cur_mu) * cur_phi + 1.0;
     
     out[i] = R::pbeta(cur_q, shape1, shape2, lower_tail ? 1 : 0, log_prob ? 1 : 0);
   }
@@ -90,13 +90,13 @@ NumericVector cpp_qbeta_mode(const NumericVector p,
     double cur_mu  = mu[i % nmu];
     double cur_phi = phi[i % nphi];
     
-    if (cur_mu <= 0.0 || cur_mu >= 1.0 || cur_phi <= 2.0) {
+    if (cur_mu <= 0.0 || cur_mu >= 1.0 || cur_phi <= 0.0) {
       out[i] = R_NaN;
       continue;
     }
     
-    double shape1 = cur_mu * (cur_phi - 2.0) + 1.0;
-    double shape2 = (1.0 - cur_mu) * (cur_phi - 2.0) + 1.0;
+    double shape1 = cur_mu * cur_phi + 1.0;
+    double shape2 = (1.0 - cur_mu) * cur_phi + 1.0;
     
     out[i] = R::qbeta(cur_p, shape1, shape2, lower_tail ? 1 : 0, log_prob ? 1 : 0);
   }
@@ -116,13 +116,13 @@ NumericVector cpp_rbeta_mode(const int n,
     double cur_mu  = mu[i % nmu];
     double cur_phi = phi[i % nphi];
     
-    if (cur_mu <= 0.0 || cur_mu >= 1.0 || cur_phi <= 2.0) {
+    if (cur_mu <= 0.0 || cur_mu >= 1.0 || cur_phi <= 0.0) {
       out[i] = R_NaN;
       continue;
     }
     
-    double shape1 = cur_mu * (cur_phi - 2.0) + 1.0;
-    double shape2 = (1.0 - cur_mu) * (cur_phi - 2.0) + 1.0;
+    double shape1 = cur_mu * cur_phi + 1.0;
+    double shape2 = (1.0 - cur_mu) * cur_phi + 1.0;
     
     out[i] = R::rbeta(shape1, shape2);
   }

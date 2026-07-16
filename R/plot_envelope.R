@@ -1,16 +1,6 @@
-#' @title Diagnostic Plots with Simulated Envelopes
+#' @name plot_envelope.unitregTMB
 #' 
-#' @description 
-#' Generic function to produce diagnostic probability plots with simulated envelopes.
-#' 
-#' @param object A fitted model object.
-#' @param ... Additional arguments.
-#' @export
-plot_envelope <- function(object, ...) {
-  UseMethod("plot_envelope")
-}
-
-#' Diagnostic Plots with Simulated Envelopes for unitregTMB
+#' @title Diagnostic Plots with Simulated Envelopes for unitregTMB
 #' 
 #' @description 
 #' Produces a (half-)normal probability plot with a simulated envelope for a fitted
@@ -18,9 +8,9 @@ plot_envelope <- function(object, ...) {
 #' chosen continuous distribution as well as the zero-one inflation (ZOI) components.
 #' 
 #' @param object A fitted \code{unitregTMB} model.
-#' @param nsim Number of simulations used to compute the envelope. Default is 99.
+#' @param nsim Number of simulations used to compute the envelope. Default is 50.
 #' @param halfnormal logical. If \code{TRUE} (default), a half-normal plot is produced. 
-#'        If \code{FALSE}, a normal plot is produced.
+#'        If \code{FALSE}, a normal plot is produced. Ignored if \code{resid.type = "cox-snell"}.
 #' @param plot logical. Should the plot be printed? Default is \code{TRUE}.
 #' @param level Confidence level of the simulated envelope. Default is 0.95.
 #' @param resid.type Type of residuals to be used: \code{"quantile"} (default) or \code{"cox-snell"}.
@@ -28,8 +18,9 @@ plot_envelope <- function(object, ...) {
 #' @param show.progress logical. Should a progress bar and messages be displayed? Default is \code{TRUE}.
 #' @param ... Additional arguments passed to the \code{plot} function.
 #' 
-#' @return A list (invisibly) containing the observed residuals (\code{res_obs}) and a matrix 
-#'         with the lower and upper bounds of the simulated envelope (\code{envelope}).
+#' @return A list (invisibly) containing a data frame with the envelope coordinates (\code{data}),
+#'         the model family name (\code{family}), the residual type (\code{resid.type}), 
+#'         and whether a half-normal plot was used (\code{halfnormal}).
 #' 
 #' @examples
 #' \donttest{
@@ -40,23 +31,28 @@ plot_envelope <- function(object, ...) {
 #' #                   data = da)
 #' # 
 #' # # Generate the envelope plot (runs sequentially with progress bar by default)
-#' # plot_envelope(fit, nsim = 99)
+#' # plot_envelope(fit, nsim = 50)
 #' #
 #' # # Run in parallel silently
-#' # plot_envelope(fit, nsim = 99, ncpus = 2, show.progress = FALSE)
+#' # plot_envelope(fit, nsim = 50, ncpus = 2, show.progress = FALSE)
 #' }
 #' 
-#' @importFrom stats qnorm qexp quantile median plogis
+#' @importFrom stats qnorm qexp quantile median plogis residuals
 #' @importFrom graphics plot lines points grid
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #' @importFrom parallel makeCluster stopCluster parLapply clusterExport clusterEvalQ
-#' @rdname plot_envelope
+#' @importFrom tools toTitleCase
+#' @rdname plot_envelope_unitregTMB
 #' @export
-plot_envelope.unitregTMB <- function(object, nsim = 99, halfnormal = TRUE, plot = TRUE, 
+plot_envelope.unitregTMB <- function(object, nsim = 50, halfnormal = TRUE, plot = TRUE, 
                                      level = 0.95, resid.type = c("quantile", "cox-snell"), 
                                      ncpus = 1, show.progress = TRUE, ...) {
   
   resid.type <- match.arg(resid.type)
+  
+  if (resid.type == "cox-snell") {
+    halfnormal <- FALSE
+  }
   
   n <- object$nobs
   tau <- object$tau 
@@ -209,28 +205,34 @@ plot_envelope.unitregTMB <- function(object, nsim = 99, halfnormal = TRUE, plot 
   }
   if(ncol(res_sim) < 2) stop("Error: Almost all simulations failed. Check your model and data.")
   
-  res_obs_raw <- residuals(object, type = resid.type)
+  res_obs_raw <- stats::residuals(object, type = resid.type)
   
   if (resid.type == "cox-snell") {
+    ylab_txt <- "Ordered Cox-Snell residuals"
+    dist_lab <- "Exponential"
+    
     res_obs <- sort(res_obs_raw)
     res_sim <- apply(res_sim, 2, sort, na.last = NA)
     n_plot <- length(res_obs)
-    res_teo <- stats::qexp((1:n_plot - 0.375) / (n_plot + 0.25))
-    dist_lab <- "Exponential"; ylab_txt <- "Ordered absolute Cox-Snell residuals"
+    res_teo <- stats::qexp((1:n_plot - 3/8) / (n_plot + 1/4))
     
   } else if (halfnormal) {
+    ylab_txt <- "Ordered absolute randomized quantile residuals"
+    dist_lab <- "Half-Normal"
+    
     res_obs <- sort(abs(res_obs_raw))
     res_sim <- apply(res_sim, 2, function(x) sort(abs(x), na.last = NA))
     n_plot <- length(res_obs)
-    res_teo <- stats::qnorm((1:n_plot + n_plot - 0.125) / (2 * n_plot + 0.5))
-    dist_lab <- "Half-Normal"; ylab_txt <- "Randomized quantile residuals"
+    res_teo <- stats::qnorm((1:n_plot + n_plot - 1/8) / (2 * n_plot + 0.5))
     
   } else {
+    ylab_txt <- "Randomized quantile residuals"
+    dist_lab <- "Normal"
+    
     res_obs <- sort(res_obs_raw)
     res_sim <- apply(res_sim, 2, sort, na.last = NA)
     n_plot <- length(res_obs)
-    res_teo <- stats::qnorm((1:n_plot - 0.375) / (n_plot + 0.25))
-    dist_lab <- "Normal"; ylab_txt <- "Randomized quantile residuals"
+    res_teo <- stats::qnorm((1:n_plot - 3/8) / (n_plot + 1/4))
   }
   
   alpha <- (1 - level) / 2
@@ -243,7 +245,7 @@ plot_envelope.unitregTMB <- function(object, nsim = 99, halfnormal = TRUE, plot 
     Rx <- range(res_teo, na.rm = TRUE)
     
     graphics::plot(res_teo, res_obs, ylim = Ry, xlim = Rx, type = "n",
-                   xlab = "Theoretical quantiles", 
+                   xlab = paste("Theoretical", dist_lab, "quantiles"), 
                    ylab = ylab_txt, 
                    main = object$family, 
                    bty = "o", 
@@ -257,5 +259,27 @@ plot_envelope.unitregTMB <- function(object, nsim = 99, halfnormal = TRUE, plot 
     graphics::points(res_teo, res_obs, pch = 3, col = "black", cex = 0.8)
   } 
   
-  invisible(list(res_obs = res_obs, envelope = cbind(Lower = res_lwr, Median = res_mid, Upper = res_upr)))
+  df_envelope <- data.frame(
+    Theoretical = res_teo,
+    Observed    = res_obs,
+    Lower       = res_lwr,
+    Median      = res_mid,
+    Upper       = res_upr
+  )
+  
+  model_family <- if (!is.null(object$family)) {
+    object$family
+  } else {
+    "unitregTMB model"
+  }
+  
+  res_final <- list(
+    data = df_envelope,
+    family = model_family,
+    resid.type = resid.type,
+    halfnormal = halfnormal
+  )
+  
+  class(res_final) <- "envelope.unitregTMB"
+  invisible(res_final)
 }

@@ -1,3 +1,5 @@
+#' @name write_methods.unitregTMB
+#' 
 #' @title Generate Methods Section Text for unitregTMB
 #' 
 #' @description 
@@ -6,13 +8,14 @@
 #' the distribution family, link function, presence of zero/one inflation, 
 #' and random effects, writing the text in either English or Portuguese.
 #' 
-#' @param model A fitted \code{unitregTMB} object.
+#' @param object A fitted \code{unitregTMB} model.
 #' @param language Character string indicating the language for the generated text. 
 #'        Options are \code{"en"} for English (default) or \code{"pt"} for Portuguese.
+#' @param ... Additional arguments passed to methods.
 #' 
 #' @return A list (invisibly) containing two elements: \code{text} (the generated 
-#'   methods paragraph) and \code{bibtex} (the citation string). The text is also 
-#'   printed to the console.
+#'    methods paragraph) and \code{bibtex} (the citation string). The text is also 
+#'    printed to the console.
 #' 
 #' @examples
 #' \donttest{
@@ -25,26 +28,27 @@
 #' # methods_output$text
 #' }
 #' 
+#' @rdname write_methods_unitregTMB
 #' @export
-write_methods <- function(model, language = c("en", "pt")) {
+write_methods.unitregTMB <- function(object, language = c("en", "pt"), ...) {
   lang <- match.arg(language)
   
-  if (inherits(model$family, "unitregTMBFamily") || is.list(model$family)) {
-    f_name <- model$family$name
-    l_name <- model$family$link_r_name
+  if (inherits(object$family, "unitregTMBFamily") || is.list(object$family)) {
+    f_name <- object$family$name
+    l_name <- object$family$link_r_name
     link_text_en <- sprintf("a %s link function", l_name)
     link_text_pt <- sprintf("função de ligação %s", l_name)
-    if(!is.null(model$family$tau)) f_name <- paste0(f_name, " ($\\tau = ", model$family$tau, "$)")
+    if(!is.null(object$family$tau)) f_name <- paste0(f_name, " ($\\tau = ", object$family$tau, "$)")
   } else {
-    f_name <- if (!is.null(model$family)) as.character(model$family) else "Unknown"
+    f_name <- if (!is.null(object$family)) as.character(object$family) else "Unknown"
     link_text_en <- "its specified link function"
     link_text_pt <- "sua função de ligação especificada"
   }
   
-  has_re <- isTRUE(model$has_random_effects_mu) || isTRUE(model$obj$env$data$has_random_effects_mu == 1)
+  has_re <- isTRUE(object$has_random_effects_mu) || isTRUE(object$obj$env$data$has_random_effects_mu == 1)
   
-  has_p0 <- isTRUE(model$has_p0_inflation) || isTRUE(model$obj$env$data$has_p0_inflation == 1)
-  has_p1 <- isTRUE(model$has_p1_inflation) || isTRUE(model$obj$env$data$has_p1_inflation == 1)
+  has_p0 <- isTRUE(object$has_p0_inflation) || isTRUE(object$obj$env$data$has_p0_inflation == 1)
+  has_p1 <- isTRUE(object$has_p1_inflation) || isTRUE(object$obj$env$data$has_p1_inflation == 1)
   
   zoi_text_en <- ""
   zoi_text_pt <- ""

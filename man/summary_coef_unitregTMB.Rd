@@ -2,9 +2,12 @@
 % Please edit documentation in R/summary_coef.R
 \name{summary_coef.unitregTMB}
 \alias{summary_coef.unitregTMB}
+\alias{print.summary_coef.unitregTMB}
 \title{Summarize Coefficients from unitregTMB Models}
 \usage{
 \method{summary_coef}{unitregTMB}(object, ..., component = "mu", digits = 3, print_tex = FALSE)
+
+\method{print}{summary_coef.unitregTMB}(x, digits = NULL, print_tex = NULL, ...)
 }
 \arguments{
 \item{object}{An object of class \code{unitregTMB}.}
@@ -19,6 +22,8 @@ Options include \code{"all"}, \code{"mu"} (location), \code{"phi"} (precision/di
 
 \item{print_tex}{A logical value. If \code{TRUE}, the summary prepares attributes to be 
 printed as a LaTeX table. Default is \code{FALSE}.}
+
+\item{x}{An object of class \code{summary_coef.unitregTMB}.}
 }
 \value{
 An object of class \code{summary_coef.unitregTMB} containing a list of compiled 
