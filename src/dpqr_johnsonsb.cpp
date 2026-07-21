@@ -18,12 +18,10 @@ using namespace Rcpp;
 //   tau : Quantile level (0 < tau < 1)
 // ============================================================================
 
-// Helper: Logit function
 inline double logit(double p) {
   return std::log(p / (1.0 - p));
 }
 
-// Helper: Inverse Logit (Expit)
 inline double expit(double z) {
   return 1.0 / (1.0 + std::exp(-z));
 }
@@ -131,7 +129,6 @@ NumericVector cpp_qjohnsonsb(const NumericVector p,
       out[i] = R_NaN; continue; 
     }
     
-    // Handle probabilities
     double pp = cur_p;
     if (log_prob) pp = std::exp(pp);
     if (!lower_tail) pp = 1.0 - pp;
