@@ -9,7 +9,7 @@ using namespace Rcpp;
 // Reference: Mazucheli et al. (2022) Parameterizations
 // 
 // Important Note: In this package architecture, the parameter 'phi' 
-// represents the standard shape parameter 'theta' bounded in (0, 1). 
+// represents the dispersion (shape) parameter 'theta' bounded in (0, 1). 
 // The logit link transformation is handled upstream by the TMB model environment.
 // ============================================================================
 
@@ -31,8 +31,7 @@ NumericVector cpp_dvasicek_mean(const NumericVector x,
     double cur_mu  = mu[i % nmu];
     double cur_phi = phi[i % nphi];
     
-    // Bounds check: phi is strictly bounded in (0, 1)
-    if (cur_mu <= 0.0 || cur_mu >= 1.0 || cur_phi <= 0.0 || cur_phi >= 1.0) { 
+     if (cur_mu <= 0.0 || cur_mu >= 1.0 || cur_phi <= 0.0 || cur_phi >= 1.0) { 
       out[i] = R_NaN; continue; 
     }
     if (cur_x <= 0.0 || cur_x >= 1.0) { 
