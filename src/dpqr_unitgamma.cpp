@@ -33,7 +33,6 @@ NumericVector cpp_dugamma_mean(const NumericVector x, const NumericVector mu, co
     if (cur_mu <= 0.0 || cur_mu >= 1.0 || cur_phi <= 0.0) { out[i] = R_NaN; continue; }
     if (cur_x <= 0.0 || cur_x >= 1.0) { out[i] = log_prob ? R_NegInf : 0.0; continue; }
     
-    // Stable mapping mu -> beta
     double a = -std::log(cur_mu) / cur_phi;
     double beta = 1.0 / std::expm1(a);
     
@@ -67,8 +66,6 @@ NumericVector cpp_pugamma_mean(const NumericVector q, const NumericVector mu, co
     double a = -std::log(cur_mu) / cur_phi;
     double beta = 1.0 / std::expm1(a);
     
-    // P(Y <= q) = P(exp(-X) <= q) = P(X >= -log(q))
-    // We reverse lower_tail for the underlying Gamma CDF
     out[i] = R::pgamma(-std::log(cur_q), cur_phi, 1.0/beta, !lower_tail, log_prob);
   }
   return out;
@@ -148,7 +145,6 @@ NumericVector cpp_dugamma_mode(const NumericVector x, const NumericVector mu, co
     double log_mu = std::log(cur_mu);
     double beta = (1.0 + log_mu - cur_phi) / log_mu;
     
-    // Safety check: Gamma rate must be > 0. If beta <= 0, the mode implies an invalid density.
     if (beta <= 0.0) { out[i] = R_NaN; continue; }
     
     double log_y = std::log(cur_x);
