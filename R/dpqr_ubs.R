@@ -12,6 +12,9 @@
 #' @references 
 #' Mazucheli, J., Menezes, A. F. B., & Dey, S. (2018). Unit-Birnbaum-Saunders distribution with applications. 
 #' \emph{Chilean Journal of Statistics}, \bold{9}(1), 47--57.
+#'
+#' Mazucheli, J., Alves, B. and Menezes, A. F. B., (2021). A new quantile regression for modeling bounded data under 
+#' a unit Birnbaum-Saunders distribution with applications. Simmetry, (), 1--28.
 #' 
 #' @param x,q vector of quantiles.
 #' @param p vector of probabilities.
