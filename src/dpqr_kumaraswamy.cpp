@@ -11,11 +11,10 @@ using namespace Rcpp;
 // ============================================================================
 
 // ----------------------------------------------------------------------------
-// 1. Parametrização pela MODA (Mode)
+// 1. Parameterization (Mode)
 // mu  : Moda (0 < mu < 1)
 // phi : Shape 'a' (phi > 1)
 //
-// Conversão para 'b':
 // b = (1 + (phi - 1) * mu^(-phi)) / phi
 // ----------------------------------------------------------------------------
 
@@ -37,7 +36,7 @@ NumericVector cpp_dkum_mode(const NumericVector x, const NumericVector mu, const
     double cur_b = (1.0 + (cur_a - 1.0) * std::pow(cur_mu, -cur_a)) / cur_a;
     
     // log(f) = log(a) + log(b) + (a-1)log(x) + (b-1)log(1 - x^a)
-    // log(1 - x^a) -> log1p(-x^a) para precisão
+    // log(1 - x^a) -> log1p(-x^a) 
     double log_x = std::log(cur_x);
     double term_tail = std::log1p(-std::pow(cur_x, cur_a)); 
     
@@ -72,9 +71,6 @@ NumericVector cpp_pkum_mode(const NumericVector q, const NumericVector mu, const
     // log(1 - x^a)
     double log_base = std::log1p(-std::pow(cur_q, cur_a));
     
-    // Se lower_tail = TRUE: retornar 1 - exp(b * log_base)
-    // Se lower_tail = FALSE: retornar exp(b * log_base)  <-- Mais preciso calcular S(x) direto
-    
     double log_S = cur_b * log_base; // log(Survival)
     
     if (lower_tail) {
@@ -108,7 +104,7 @@ NumericVector cpp_qkum_mode(const NumericVector p, const NumericVector mu, const
     double cur_b = (1.0 + (cur_a - 1.0) * std::pow(cur_mu, -cur_a)) / cur_a;
     
     // Q(p) = (1 - (1-p)^(1/b))^(1/a)
-    // Se lower_tail=FALSE: Q(p) = (1 - p^(1/b))^(1/a)
+    // if lower_tail = FALSE: Q(p) = (1 - p^(1/b))^(1/a)
     
     double base_term; 
     if (lower_tail) {
@@ -133,12 +129,11 @@ NumericVector cpp_rkum_mode(const int n, const NumericVector mu, const NumericVe
 
 
 // ----------------------------------------------------------------------------
-// 2. Parametrização por QUANTIL (Quantile)
-// mu  : Quantil de ordem tau (0 < mu < 1)
+// 2. Parameterization (Quantile)
+// mu  : tau-ith quantile (0 < mu < 1)
 // phi : Shape 'a' (phi > 0)
-// tau : Ordem do quantil (0 < tau < 1)
+// tau : (0 < tau < 1)
 //
-// Conversão para 'b':
 // b = log(1 - tau) / log(1 - mu^a)
 // ----------------------------------------------------------------------------
 
