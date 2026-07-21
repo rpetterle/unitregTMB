@@ -16,7 +16,7 @@
 #' Jones, M. C., (2009). Kumaraswamy's distribution: A beta-type distribution with some tractability advantages. Statistical Methodology, 6(1), 70-81.
 #'
 #' Menezes, A. F., Mazucheli, J. and Chakraborty, S. (2021). A collection of parametric modal regression models 
-#' for bounded data, Journal of Biopharmaceutical Statistics 31(4): 490–506.
+#' for bounded data, Journal of Biopharmaceutical Statistics 31(4): 490–506. test
 #' 
 #' @param x,q vector of quantiles.
 #' @param p vector of probabilities.
