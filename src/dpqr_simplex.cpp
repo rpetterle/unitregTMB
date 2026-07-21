@@ -5,8 +5,7 @@
 
 using namespace Rcpp;
 
-// --- Weights and Nodes for Gauss-Legendre (20 points) ---
-// Replaces external integration dependencies
+// Weights and Nodes for Gauss-Legendre (20 points) 
 const double GL_X[] = {
     0.0765265211334973, 0.2277858511416451, 0.3737060887154195, 0.5108670019508271, 0.6360536807265150,
     0.7463319064601508, 0.8391169718222188, 0.9122344282513259, 0.9639719272779138, 0.9931285991850949
@@ -16,11 +15,6 @@ const double GL_W[] = {
     0.1019301198172404, 0.0832767415767048, 0.0626720483341091, 0.0406014298003869, 0.0176140071391521
 };
 
-// ============================================================================
-// Simplex Kernels
-// ============================================================================
-
-// 1. Log-Density (Scalar) with underflow protection
 inline double log_pdf_simplex_scalar(double x, double mu, double phi) {
     if (x <= 1e-9 || x >= (1.0 - 1e-9)) return R_NegInf;
     
@@ -33,7 +27,6 @@ inline double log_pdf_simplex_scalar(double x, double mu, double phi) {
                (x * one_minus_x * mu * mu * one_minus_mu * one_minus_mu);
                
     // phi represents sigma^2, the dispersion parameter
-    // Expanded logarithms to strictly prevent numeric underflow near 0 or 1
     double log_res = -0.5 * (std::log(2.0 * M_PI) + std::log(phi) + 
                      3.0 * (std::log(x) + std::log(one_minus_x))) - 
                      d / (2.0 * phi);
@@ -41,12 +34,10 @@ inline double log_pdf_simplex_scalar(double x, double mu, double phi) {
     return log_res;
 }
 
-// 1.b Density (Scalar)
 inline double pdf_simplex_scalar(double x, double mu, double phi) {
     return std::exp(log_pdf_simplex_scalar(x, mu, phi));
 }
 
-// 2. Cumulative Distribution Function via Gauss-Legendre
 inline double cdf_simplex_scalar(double q, double mu, double phi) {
     if (q <= 0.0) return 0.0;
     if (q >= 1.0) return 1.0;
@@ -70,7 +61,6 @@ inline double cdf_simplex_scalar(double q, double mu, double phi) {
     return cdf;
 }
 
-// 3. Quantile via Bisection
 inline double invcdf_simplex_scalar(double p, double mu, double phi) {
     if (p <= 0.0) return 0.0;
     if (p >= 1.0) return 1.0;
@@ -86,10 +76,6 @@ inline double invcdf_simplex_scalar(double p, double mu, double phi) {
     }
     return mid;
 }
-
-// ============================================================================
-// Exported Functions (Vectorized)
-// ============================================================================
 
 // [[Rcpp::export]]
 NumericVector cpp_dsimplex(const NumericVector x, const NumericVector mu, const NumericVector phi, const bool log_prob = false) {
@@ -108,7 +94,6 @@ NumericVector cpp_dsimplex(const NumericVector x, const NumericVector mu, const 
             if (cur_x <= 0 || cur_x >= 1) {
                 out[i] = log_prob ? R_NegInf : 0.0;
             } else {
-                // Evaluates exact log PDF internally, avoiding log(exp())
                 double val = log_pdf_simplex_scalar(cur_x, cur_mu, cur_phi);
                 out[i] = log_prob ? val : std::exp(val);
             }
