@@ -9,8 +9,6 @@ using namespace Rcpp;
 //   mu  : Mode (0 < mu < 1)
 //   phi : Precision (phi > 0)
 //
-// Relations to shapes (alpha, beta):
-//   Let phi = alpha + beta - 2
 //   Mode = (alpha - 1) / (alpha + beta - 2)
 //   => alpha = mu * phi + 1
 //   => beta  = (1 - mu) * phi + 1
