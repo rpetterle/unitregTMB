@@ -8,7 +8,6 @@ using namespace Rcpp;
 // Parameters:
 //   mu  : Mean (0 < mu < 1)
 //   phi : Precision (phi > 0)
-// Relations:
 //   shape1 (alpha) = mu * phi
 //   shape2 (beta)  = (1 - mu) * phi
 // ============================================================================
@@ -18,7 +17,6 @@ NumericVector cpp_dbeta_mean(const NumericVector x,
                              const NumericVector mu, 
                              const NumericVector phi, 
                              const bool log_prob = false) {
-    // 1. Determinar tamanho do output (Recycling Rule)
     int nx = x.size();
     int nmu = mu.size();
     int nphi = phi.size();
@@ -27,23 +25,18 @@ NumericVector cpp_dbeta_mean(const NumericVector x,
     NumericVector out(n);
 
     for (int i = 0; i < n; ++i) {
-        // 2. Reciclagem manual dos parâmetros
         double cur_x   = x[i % nx];
         double cur_mu  = mu[i % nmu];
         double cur_phi = phi[i % nphi];
 
-        // 3. Validação
         if (cur_mu <= 0.0 || cur_mu >= 1.0 || cur_phi <= 0.0) {
             out[i] = R_NaN;
             continue;
         }
 
-        // 4. Conversão para parametrização padrão (alpha, beta)
         double shape1 = cur_mu * cur_phi;
         double shape2 = (1.0 - cur_mu) * cur_phi;
 
-        // 5. Cálculo usando Rmath (R::dbeta)
-        // O último argumento é log (0 = false, 1 = true)
         out[i] = R::dbeta(cur_x, shape1, shape2, log_prob ? 1 : 0);
     }
     return out;
