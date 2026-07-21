@@ -51,7 +51,6 @@ NumericVector cpp_dubs(const NumericVector x,
       out[i] = log_prob ? R_NegInf : 0.0; continue; 
     }
     
-    // 1. Calculate auxiliary terms
     double t_x = calc_t(cur_x);
     double t_mu = calc_t(cur_mu);
     
@@ -60,16 +59,11 @@ NumericVector cpp_dubs(const NumericVector x,
     
     double z_tau = R::qnorm(cur_tau, 0.0, 1.0, 1, 0); // lower_tail=1, log=0
     
-    // 2. Z-score
     double z = (xi_x - xi_mu) / cur_phi + z_tau;
     
-    // 3. Jacobian components
-    // J = (t(x) + 1/t(x)) / (2 * x * (-log(x)) * phi)
     double term_num = t_x + 1.0 / t_x;
     double term_den = 2.0 * cur_x * (-std::log(cur_x)) * cur_phi;
     
-    // 4. Log-PDF
-    // log(f) = dnorm(z, log=T) + log(J)
     double log_dnorm = R::dnorm(z, 0.0, 1.0, 1);
     double log_jac = std::log(term_num) - std::log(term_den);
     
@@ -104,7 +98,6 @@ NumericVector cpp_pubs(const NumericVector q,
     if (cur_q <= 0) { out[i] = (log_prob ? R_NegInf : 0.0); continue; }
     if (cur_q >= 1) { out[i] = (log_prob ? 0.0 : 1.0); continue; }
     
-    // F(y) = Phi(z)
     double t_q = calc_t(cur_q);
     double t_mu = calc_t(cur_mu);
     
