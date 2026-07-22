@@ -12,7 +12,7 @@
 #' @references 
 #' Barreto-Souza, W., Mayrink, V. D., & Simas, A. B. (2022). 
 #' Bessel regression model: a robust alternative to beta regression. 
-#' \emph{Journal of Applied Statistics}, 49(1), 1-20.
+#' \emph{Journal of Applied Statistics}, \bold{49}(1), 1--20.
 #'
 #' @param x,q vector of quantiles (0 < x, q < 1).
 #' @param p vector of probabilities.

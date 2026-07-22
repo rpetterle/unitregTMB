@@ -8,7 +8,12 @@
 #' Beta distribution parameterized by the mode \code{mu} and precision \code{phi}.
 #' 
 #' @author Ricardo Rasmussen Petterle
+#'
+#' @references 
 #' 
+#' Menezes, A. F., Mazucheli, J. and Chakraborty, S. (2021). A collection of parametric modal regression models for bounded data.
+#' \emph{Journal of Biopharmaceutical Statistics}, \bold{31}(4), 490--506. 
+#'  
 #' @details 
 #' The Beta distribution with mode \eqn{\mu} and precision \eqn{\phi} has shape parameters:
 #' \deqn{\alpha = \mu\phi + 1}

@@ -10,8 +10,8 @@
 #' @author Ricardo Rasmussen Petterle
 #' 
 #' @references 
-#' Ferrari, S. L. P., & Cribari-Neto, F. (2004). Beta regression for modeling rates and proportions. 
-#' \emph{Journal of Applied Statistics}, \bold{31}(7), 799--815.
+#' Ferrari, S. L. P., & Cribari-Neto, F. (2004). Beta regression for modeling 
+#' rates and proportions. \emph{Journal of Applied Statistics}, \bold{31}(7), 799--815.
 #' 
 #' @param x,q vector of quantiles.
 #' @param p vector of probabilities.

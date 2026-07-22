@@ -13,10 +13,11 @@
 #' Kumaraswamy, P. (1980). A generalized probability density function for double-bounded random processes. 
 #' \emph{Journal of Hydrology}, \bold{46}(1-2), 79--88.
 #' 
-#' Jones, M. C., (2009). Kumaraswamy's distribution: A beta-type distribution with some tractability advantages. Statistical Methodology, 6(1), 70-81.
+#' Jones, M. C., (2009). Kumaraswamy's distribution: A beta-type distribution with some tractability advantages. 
+#' \emph{Statistical Methodology}, \bold{6}(1), 70--81.
 #'
-#' Menezes, A. F., Mazucheli, J. and Chakraborty, S. (2021). A collection of parametric modal regression models 
-#' for bounded data, Journal of Biopharmaceutical Statistics 31(4): 490–506. 
+#' Menezes, A. F., Mazucheli, J. and Chakraborty, S. (2021). A collection of parametric modal regression models for bounded data.
+#' \emph{Journal of Biopharmaceutical Statistics}, \bold{31}(4), 490--506. 
 #' 
 #' @param x,q vector of quantiles.
 #' @param p vector of probabilities.

@@ -13,6 +13,9 @@
 #' Mazucheli, J., Menezes, A. F. B., & Dey, S. (2019). The unit-Gompertz distribution with applications. 
 #' \emph{Statistica}, \bold{79}(1), 25--43.
 #' 
+#' Menezes, A. F., Mazucheli, J. and Chakraborty, S. (2021). A collection of parametric modal regression models for bounded data.
+#' \emph{Journal of Biopharmaceutical Statistics}, \bold{31}(4), 490--506. 
+#' 
 #' @param x,q vector of quantiles.
 #' @param p vector of probabilities.
 #' @param n number of observations.

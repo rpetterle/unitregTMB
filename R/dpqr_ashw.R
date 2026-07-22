@@ -10,8 +10,9 @@
 #' @author Ricardo Rasmussen Petterle
 #' 
 #' @references 
-#' Korkmaz, M. C., Chesneau, C. and Korkmaz, Z. S., (2021). A new alternative quantile regression model for the bounded response 
-#' with educational measurements applications of OECD countries. Journal of Applied Statistics, 1--25.
+#' Korkmaz, M. C., Chesneau, C. and Korkmaz, Z. S., (2021). A new alternative
+#' quantile regression model for the bounded response  with educational measurements 
+#' applications of OECD countries. \emph{Journal of Applied Statistics}, 1--25.
 #' 
 #' @param x,q vector of quantiles.
 #' @param p vector of probabilities.

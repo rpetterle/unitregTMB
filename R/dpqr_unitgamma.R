@@ -13,6 +13,12 @@
 #' Grassia, A. (1977). On a family of distributions with argument between 0 and 1 obtained by transformation of the gamma and beta families. 
 #' \emph{Australian Journal of Statistics}, \bold{19}(2), 108--114.
 #' 
+#" Mousa, A. M., El-Sheikh, A. A., and Abdel-Fattah, M. A. (2016). A gamma regression for bounded continuous variables. 
+#' \emph{Advances and Applications in Statistics}, \bold{49}, 305.
+#' 
+#' Menezes, A. F., Mazucheli, J. and Chakraborty, S. (2021). A collection of parametric modal regression models for bounded data.
+#' \emph{Journal of Biopharmaceutical Statistics}, \bold{31}(4), 490--506. 
+#' 
 #' @param x,q vector of quantiles.
 #' @param p vector of probabilities.
 #' @param n number of observations.
