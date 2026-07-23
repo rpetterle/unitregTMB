@@ -1,4 +1,4 @@
-# unitregTMB: An R Package for Zero- and One-Inflated Mixed-Effects Models on the Unit Interval <img src="man/figures/Logo.png" align="right" width="150" />
+# unitregTMB: An R Package for Zero- and One-Inflated Mixed-Effects Models on the Unit Interval <img src="man/figures/Logo2.png" align="right" width="250" />
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/rpetterle/unitregTMB/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/rpetterle/unitregTMB/actions/workflows/R-CMD-check.yaml)
@@ -18,10 +18,17 @@
 
 ## Installation
 
-You can install the development version of `unitregTMB` from GitHub using the `remotes` package. Please note that a C++ compiler is required (e.g., Rtools for Windows, Xcode for macOS).
+You can install the development version of `unitregTMB` from GitHub using the `remotes` package. 
+
+**Important:** `unitregTMB` depends on the `unitcore` package, which must be installed first. Please also note that a C++ compiler is required (e.g., Rtools for Windows, Xcode for macOS).
 
 ```r
 # install.packages("remotes")
+
+# 1. Install the unitcore dependency
+remotes::install_github("rpetterle/unitcore")
+
+# 2. Install unitregTMB
 remotes::install_github("rpetterle/unitregTMB")
 ```
 
