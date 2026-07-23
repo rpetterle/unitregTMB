@@ -69,6 +69,11 @@ curve(dugamma_mode(x, mu_d, phi_d), add = TRUE, col = "blue", lwd = 2)
 \references{
 Grassia, A. (1977). On a family of distributions with argument between 0 and 1 obtained by transformation of the gamma and beta families. 
 \emph{Australian Journal of Statistics}, \bold{19}(2), 108--114.
+
+\emph{Advances and Applications in Statistics}, \bold{49}, 305.
+
+Menezes, A. F., Mazucheli, J. and Chakraborty, S. (2021). A collection of parametric modal regression models for bounded data.
+\emph{Journal of Biopharmaceutical Statistics}, \bold{31}(4), 490--506.
 }
 \author{
 Ricardo Rasmussen Petterle

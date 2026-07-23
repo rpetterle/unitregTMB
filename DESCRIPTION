@@ -34,3 +34,4 @@ SystemRequirements: GNU make
 URL: https://github.com/rpetterle/unitregTMB
 BugReports: https://github.com/rpetterle/unitregTMB/issues
 VignetteBuilder: knitr
+LazyData: true

@@ -81,8 +81,8 @@ par(oldpar)
 
 }
 \references{
-Ferrari, S. L. P., & Cribari-Neto, F. (2004). Beta regression for modeling rates and proportions. 
-\emph{Journal of Applied Statistics}, \bold{31}(7), 799--815.
+Ferrari, S. L. P., & Cribari-Neto, F. (2004). Beta regression for modeling 
+rates and proportions. \emph{Journal of Applied Statistics}, \bold{31}(7), 799--815.
 }
 \author{
 Ricardo Rasmussen Petterle

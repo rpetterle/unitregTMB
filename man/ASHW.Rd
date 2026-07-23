@@ -56,8 +56,9 @@ cat("P(X <= mu) should be 0.5:", p_mu, "\n")
 
 }
 \references{
-Kieschnick, R., & McCullough, B. D. (2003). Regression analysis of variates observed on (0, 1): percentages, proportions and fractions. 
-\emph{Statistical Modelling}, \bold{3}(3), 193--213.
+Korkmaz, M. C., Chesneau, C. and Korkmaz, Z. S., (2021). A new alternative
+quantile regression model for the bounded response  with educational measurements 
+applications of OECD countries. \emph{Journal of Applied Statistics}, 1--25.
 }
 \author{
 Ricardo Rasmussen Petterle

@@ -56,6 +56,10 @@ curve(dbeta_mode(x, mu_val, phi_val), add = TRUE, col = "red", lwd = 2)
 abline(v = mu_val, col = "blue", lty = 2) # Mode line
 
 }
+\references{
+Menezes, A. F., Mazucheli, J. and Chakraborty, S. (2021). A collection of parametric modal regression models for bounded data.
+\emph{Journal of Biopharmaceutical Statistics}, \bold{31}(4), 490--506.
+}
 \author{
 Ricardo Rasmussen Petterle
 }
