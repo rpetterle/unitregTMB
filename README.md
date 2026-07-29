@@ -9,9 +9,9 @@
 ## Key Features
 
 * **Wide Range of Distributions:** Supports multiple parameterizations for bounded data:
-  * **Mean regression:** Beta, Simplex, Vasicek, Unit-Gamma, Bessel.
-  * **Quantile regression:** Kumaraswamy, Vasicek, Unit-Weibull, Unit-Gompertz, Johnson's SB, arc-secant hyperbolic Weibull (ASHW), Unit-Birnbaum-Saunders.
-  * **Mode regression:** Beta, Kumaraswamy, Unit-Gamma, Unit-Gompertz.
+  * **Mean regression:** Beta, Simplex, Vasicek, Unit-gamma, Bessel.
+  * **Quantile regression:** Kumaraswamy, Vasicek, Unit-Weibull, Unit-Gompertz, Johnson SB, arc-secant hyperbolic Weibull (ASHW), Unit-Birnbaum-Saunders.
+  * **Mode regression:** Beta, Kumaraswamy, Unit-gamma, Unit-Gompertz.
 * **Mixed-Effects:** Easily incorporate random intercepts and slopes to account for clustered, longitudinal, or repeated-measures data using standard `(1 | id)` syntax.
 * **Zero- and One-Inflation:** Natively handles data with point masses at the boundaries (exact 0s and/or 1s) through threshold equations.
 * **Model Selection & Diagnostics:** Includes built-in methods for variable selection (`stepCriterion`), model comparison for non-nested models (`vuong_test`, `pairwise_vuong_test`), and extracting mathematical formulas (`extract_equations`).
@@ -59,17 +59,23 @@ extract_equations(fit)
 
 ## Model Comparison (Vuong Test)
 
-`unitregTMB` allows you to rigorously compare non-nested competing models (e.g., Vasicek vs. Beta distributions) using pointwise log-likelihoods exported directly from the C++ template:
+`unitregTMB` allows you to rigorously compare non-nested competing models (e.g., Simplex vs. Unit-gamma distributions) using pointwise log-likelihoods exported directly from the C++ template:
 
 ```r
-fit_beta <- unitregTMB(
-  formula = y ~ age + bmi + gender + regions + (1 | id),
-  data = bodyfat_long,
-  family = beta_fam(model_for = "mean")
+fit_simplex <- unitregTMB(
+  formula = arms ~ age + bmi + gender + ipaq,
+  family = simplex(model_for = "mean"),
+  data = bodyfat
+)
+
+fit_ugamma <- unitregTMB(
+  formula = arms ~ age + bmi + gender + ipaq,
+  family = unitgamma(model_for = "mean"),
+  data = bodyfat
 )
 
 # Perform a Vuong Likelihood Ratio Test
-vuong_test(fit, fit_beta)
+vuong_test(fit_simplex, fit_ugamma)
 ```
 
 ## License
