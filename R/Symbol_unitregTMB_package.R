@@ -50,7 +50,7 @@ p <- ggplot() +
   geom_line(data = df_curve, aes(x = x, y = y), color = "#FFFFFF", linewidth = 1) +
   
   annotate("text", x = 0, y = -0.4, label = "unitregTMB", color = "#FFFFFF", size = 12, fontface = "bold", family = "sans") +
-  annotate("text", x = 0, y = -0.59, label = "Unit Interval Regression", color = "#48CAE4", size = 4.7, family = "sans", fontface = "bold") +
+  annotate("text", x = 0, y = -0.59, label = "Unit Interval Regression", color = "#48CAE4", size = 4.4, family = "sans", fontface = "bold") +
   
   coord_fixed(xlim = c(-limit_val, limit_val), ylim = c(-limit_val, limit_val)) + 
   theme_void() + 
