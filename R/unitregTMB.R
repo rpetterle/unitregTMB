@@ -266,19 +266,19 @@ is_zero_formula <- function(formula) {
 #' @examples
 #' \dontrun{
 #' # Basic mean parameterization with Beta distribution
-#' fit1 <- unitregTMB(yield ~ moisture + temp, data = crop_data, family = beta_mean())
+#' fit1 <- unitregTMB(yield ~ moisture + temp, data = crop_data, family = beta_fam(model_for = "mean"))
 #' 
 #' # Mixed-effects model with Kumaraswamy mode parameterization
 #' fit2 <- unitregTMB(score ~ therapy + (1 | subject), 
 #'                    data = clinical_data, 
-#'                    family = kumaraswamy_mode())
+#'                    family = kumaraswamy(model_for = "mode"))
 #' 
 #' # Model with zero-inflation and precision covariates
 #' fit3 <- unitregTMB(fraction ~ x1, 
 #'                    phi.formula = ~ x2,
 #'                    p0.formula = ~ x1,
 #'                    data = bound_data, 
-#'                    family = unitweibull_quantile(tau = 0.5))
+#'                    family = unitweibull(model_for = "quantile", tau = 0.5))
 #' }
 #' 
 #' @export
