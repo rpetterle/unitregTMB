@@ -72,14 +72,6 @@ fit_beta <- unitregTMB(
 vuong_test(fit, fit_beta)
 ```
 
-## Citation
-
-If you use **unitregTMB** in your research, please consider citing the underlying methodological papers:
-
-* Petterle, R. R., Bonat, W. H., Scarpin, C. T., Jonasson, T., & Borba, V. Z. C. (2020). Multivariate quasi-beta regression models for continuous bounded data. *International Journal of Biostatistics*, 17(1), 39-53.
-* Petterle, R. R., Taconeli, C. A., da Silva, J. L. P., da Silva, G. P., Laureano, H. A., & Bonat, W. H. (2021). Unit gamma mixed regression models for continuous bounded data. *Journal of Statistical Computation and Simulation*, 92(1), 1-19.
-* Petterle, R. R., Laureano, H. A., da Silva, G. P., & Bonat, W. H. (2021). Multivariate generalized linear mixed models for continuous bounded outcomes: Analyzing the body fat percentage data. *Statistical Methods in Medical Research*, 30(12), 2619-2633.
-
 ## License
 
 This package is licensed under the MIT License.
