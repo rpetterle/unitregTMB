@@ -49,8 +49,8 @@ p <- ggplot() +
   geom_line(data = df_curve, aes(x = x, y = y), color = "#00E5FF", linewidth = 3, alpha = 0.3) +
   geom_line(data = df_curve, aes(x = x, y = y), color = "#FFFFFF", linewidth = 1) +
   
-  annotate("text", x = 0, y = -0.45, label = "unitregTMB", color = "#FFFFFF", size = 13.5, fontface = "bold", family = "sans") +
-  annotate("text", x = 0, y = -0.65, label = "Unit Interval Regression", color = "#48CAE4", size = 4, family = "sans", fontface = "bold") +
+  annotate("text", x = 0, y = -0.45, label = "unitregTMB", color = "#FFFFFF", size = 13, fontface = "bold", family = "sans") +
+  annotate("text", x = 0, y = -0.65, label = "Unit Interval Regression", color = "#48CAE4", size = 3.8, family = "sans", fontface = "bold") +
   
   coord_fixed(xlim = c(-limit_val, limit_val), ylim = c(-limit_val, limit_val)) + 
   theme_void() + 
