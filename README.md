@@ -1,17 +1,17 @@
-# unitregTMB: An R Package for Zero- and One-Inflated Mixed-Effects Models on the Unit Interval <img src="man/figures/Logo2.png" align="right" width="310" />
+# unitregTMB: An R Package for Zero- and One-Inflated Mixed-Effects Models on the Unit Interval <img src="man/figures/Logo2.png" align="right" width="309" />
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/rpetterle/unitregTMB/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/rpetterle/unitregTMB/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
-**unitregTMB** provides a fast, flexible, and robust computational framework for fitting regression models to continuous bounded data (e.g., rates, proportions, and indexes in the unit interval). Built on top of the **Template Model Builder (TMB)** in C++, it leverages automatic differentiation and the Laplace approximation to efficiently estimate fixed and random effects.
+**unitregTMB** provides a flexible framework for regression modeling of continuous bounded responses (e.g., rates, proportions, and indexes) on the four unit intervals, $(0,1)$, $[0,1)$, $(0,1]$, and $[0,1]$. It supports mean, quantile, and modal regression, as well as fixed- and mixed-effects models for clustered, longitudinal, and repeated-measures data. Built on **Template Model Builder (TMB)** in C++, it combines automatic differentiation and the Laplace approximation to efficiently estimate fixed and random effects.
 
 ## Key Features
 
 * **Wide Range of Distributions:** Supports multiple parameterizations for bounded data:
-  * **Mean models:** Beta, Simplex, Vasicek, Unit-Gamma, Bessel.
-  * **Quantile models:** Kumaraswamy, Vasicek, Unit-Weibull, Unit-Gompertz, Johnson's SB, arc-secant hyperbolic Weibull (ASHW), Unit-Birnbaum-Saunders.
-  * **Mode models:** Beta, Kumaraswamy, Unit-Gamma, Unit-Gompertz.
+  * **Mean regression:** Beta, Simplex, Vasicek, Unit-Gamma, Bessel.
+  * **Quantile regression:** Kumaraswamy, Vasicek, Unit-Weibull, Unit-Gompertz, Johnson's SB, arc-secant hyperbolic Weibull (ASHW), Unit-Birnbaum-Saunders.
+  * **Mode regression:** Beta, Kumaraswamy, Unit-Gamma, Unit-Gompertz.
 * **Mixed-Effects:** Easily incorporate random intercepts and slopes to account for clustered, longitudinal, or repeated-measures data using standard `(1 | id)` syntax.
 * **Zero- and One-Inflation:** Natively handles data with point masses at the boundaries (exact 0s and/or 1s) through threshold equations.
 * **Model Selection & Diagnostics:** Includes built-in methods for variable selection (`stepCriterion`), model comparison for non-nested models (`vuong_test`, `pairwise_vuong_test`), and extracting mathematical formulas (`extract_equations`).
