@@ -48,11 +48,9 @@ chosen continuous distribution as well as the zero-one inflation (ZOI) component
 }
 \examples{
 \donttest{
-# Assuming 'da' is your dataset and you have fitted a model:
-# fit <- unitregTMB(Y ~ educ + refill + (1 | id), 
-#                   phi.formula = ~ refill,
-#                   family = vasicek(model_for = "mean"),  
-#                   data = da)
+# fit <- unitregTMB(y ~ age + bmi + gender + ipaq + (1 | id), 
+#                   family = unitgamma(model_for = "mean"),  
+#                   data = bodyfat_long)
 # 
 # # Generate the envelope plot (runs sequentially with progress bar by default)
 # plot_envelope(fit, nsim = 50)

@@ -23,7 +23,9 @@ Extracts the estimated coefficients from a fitted \code{unitregTMB} model.
 }
 \examples{
 \donttest{
-# fit <- unitregTMB(Y ~ educ, data = da, family = vasicek())
+# fit <- unitregTMB(arms ~ age + bmi + gender + ipaq, 
+                    family = simplex(), 
+                    data = bodyfat)
 # coef(fit, type = "all")
 # coef(fit, type = "mu")
 }

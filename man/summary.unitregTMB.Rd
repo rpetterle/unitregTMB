@@ -22,11 +22,11 @@ including fixed effects, standard errors, z-values, and p-values.
 }
 \examples{
 \donttest{
-# Assuming a dataset 'da' and a fitted model 'fit':
-# fit <- unitregTMB(Y ~ educ + refill + (1 | id), 
-#                   phi.formula = ~ refill,
-#                   family = vasicek(model_for = "mean"),  
-#                   data = da)
+# Assuming a dataset 'bodyfat' and a fitted model 'fit':
+# fit <- unitregTMB(y ~ age + bmi + gender + ipaq + (1 | id), 
+#                   phi.formula = ~ 1,
+#                   family = unitgamma(model_for = "mean"),  
+#                   data = bodyfat_long)
 #
 # summary(fit)
 }

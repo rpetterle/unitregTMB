@@ -30,16 +30,18 @@ to specify the entire model call again.
 \examples{
 \donttest{
 # Assuming 'da' is your dataset:
-# fit1 <- unitregTMB(Y ~ educ, data = da, family = vasicek())
+# fit1 <- unitregTMB(y ~ bmi + gender + ipaq + (1 | id), 
+#                   family = unitgamma(model_for = "mean"),  
+#                   data = bodyfat_long))
 #
 # # 1. Update the model by adding a covariate to the mean formula
 # fit2 <- update(fit1, formula. = ~ . + age)
 #
 # # 2. Update the model by adding a dispersion formula and changing the family
-# fit3 <- update(fit1, phi.formula = ~ educ, family = kumaraswamy())
+# fit3 <- update(fit1, phi.formula = ~ bmi, family = kumaraswamy())
 #
 # # 3. Just get the updated call without fitting (useful for debugging)
-# call_only <- update(fit1, phi.formula = ~ educ, evaluate = FALSE)
+# call_only <- update(fit1, phi.formula = ~ age, evaluate = FALSE)
 # print(call_only)
 }
 
