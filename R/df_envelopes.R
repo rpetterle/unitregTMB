@@ -1,7 +1,7 @@
 #' Extract Envelope Data into a Data Frame for unitregTMB Models
 #'
 #' @description 
-#' Method for the \code{unitcore::df_envelopes} generic. Extracts the coordinates of 
+#' Method for the \code{regcore::df_envelopes} generic. Extracts the coordinates of 
 #' simulated envelopes from one or more fitted \code{unitregTMB} models. The result 
 #' is a tidy data frame in long format, highly optimized for creating faceted 
 #' graphics using \code{ggplot2}.
@@ -20,7 +20,7 @@
 #'         for all provided models. A factor column \code{Model} is included to distinguish 
 #'         the source of each set of residuals, properly ordered.
 #'         
-#' @importFrom unitcore df_envelopes plot_envelope
+#' @importFrom regcore df_envelopes plot_envelope
 #' @export
 #'
 #' @examples

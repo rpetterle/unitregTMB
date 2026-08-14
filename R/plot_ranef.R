@@ -15,9 +15,11 @@
 #' 
 #' @examples
 #' \donttest{
-#' # Assuming 'da' is your dataset and 'id' is a grouping variable:
-#' # fit <- unitregTMB(Y ~ educ + (1 | id), data = da, family = vasicek())
-#' # 
+#' # fit <- unitregTMB(y ~ age + bmi + gender + ipaq + (1 | id), 
+#' #                   phi.formula = ~ 1,
+#' #                   family = unitgamma(model_for = "mean"),  
+#' #                   data = bodyfat_long)
+#' 
 #' # # Generate the caterpillar plot
 #' # plot_ranef(fit, level = 0.95)
 #' # 

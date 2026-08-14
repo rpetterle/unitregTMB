@@ -13,11 +13,11 @@
 #' 
 #' @examples
 #' \donttest{
-#' # Assuming a dataset 'da' and a fitted model 'fit':
-#' # fit <- unitregTMB(Y ~ educ + refill + (1 | id), 
-#' #                   phi.formula = ~ refill,
-#' #                   family = vasicek(model_for = "mean"),  
-#' #                   data = da)
+#' # Assuming a dataset 'bodyfat' and a fitted model 'fit':
+#' # fit <- unitregTMB(y ~ age + bmi + gender + ipaq + (1 | id), 
+#' #                   phi.formula = ~ 1,
+#' #                   family = unitgamma(model_for = "mean"),  
+#' #                   data = bodyfat_long)
 #' #
 #' # summary(fit)
 #' }
@@ -325,8 +325,12 @@ print.unitregTMB <- function(x, digits = 4, ...) {
 #' @examples
 #' \donttest{
 #' # Assuming fit1 and fit2 are two fitted unitregTMB models:
-#' # fit1 <- unitregTMB(Y ~ educ, data = da, family = vasicek())
-#' # fit2 <- unitregTMB(Y ~ educ, data = da, family = kumaraswamy())
+#' # fit1 <- unitregTMB(arms ~ age + bmi + gender + ipaq, 
+#'                      family = vasicek(model_for = "quantile", tau = 0.75), 
+#'                      data = bodyfat)
+#' # fit2 <- unitregTMB(arms ~ age + bmi + gender + ipaq, 
+#'                      family = kumaraswamy(model_for = "quantile", tau = 0.75), 
+#'                      data = bodyfat)
 #' # gof_tab(fit1, fit2)
 #' }
 #' @rdname gof_tab_unitregTMB
@@ -448,7 +452,9 @@ print.gof_tab.unitregTMB <- function(x, digits = NULL, ...) {
 #' 
 #' @examples
 #' \donttest{
-#' # fit <- unitregTMB(Y ~ educ, data = da, family = vasicek())
+#' # fit <- unitregTMB(arms ~ age + bmi + gender + ipaq, 
+#'                     family = simplex(), 
+#'                     data = bodyfat)
 #' # coef(fit, type = "all")
 #' # coef(fit, type = "mu")
 #' }
@@ -948,16 +954,18 @@ vcov.unitregTMB <- function(object, ...) {
 #' @examples
 #' \donttest{
 #' # Assuming 'da' is your dataset:
-#' # fit1 <- unitregTMB(Y ~ educ, data = da, family = vasicek())
+#' # fit1 <- unitregTMB(y ~ bmi + gender + ipaq + (1 | id), 
+#' #                   family = unitgamma(model_for = "mean"),  
+#' #                   data = bodyfat_long))
 #' #
 #' # # 1. Update the model by adding a covariate to the mean formula
 #' # fit2 <- update(fit1, formula. = ~ . + age)
 #' #
 #' # # 2. Update the model by adding a dispersion formula and changing the family
-#' # fit3 <- update(fit1, phi.formula = ~ educ, family = kumaraswamy())
+#' # fit3 <- update(fit1, phi.formula = ~ bmi, family = kumaraswamy())
 #' #
 #' # # 3. Just get the updated call without fitting (useful for debugging)
-#' # call_only <- update(fit1, phi.formula = ~ educ, evaluate = FALSE)
+#' # call_only <- update(fit1, phi.formula = ~ age, evaluate = FALSE)
 #' # print(call_only)
 #' }
 #' 
