@@ -94,10 +94,11 @@ in a single panel and distinguished by color and shape.
 }
 \examples{
 \donttest{
-# Assuming 'da' is your dataset:
-# fit1 <- unitregTMB(Y ~ educ + refill, data = da, family = vasicek())
-# fit2 <- unitregTMB(Y ~ educ + refill, data = da, family = kumaraswamy())
-#
+#                    family = beta_fam(model_for = "mean"),  
+#                    data = bodyfat_long)
+# fit2 <- unitregTMB(y ~ age + bmi + gender + ipaq + (1 | id), 
+#                    family = unitgamma(model_for = "mean"),  
+#                    data = bodyfat_long)
 # # 1. Plot the location components (mu) for a single model
 # plot_coef(fit1, component = "mu")
 #

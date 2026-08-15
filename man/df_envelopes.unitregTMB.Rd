@@ -37,7 +37,7 @@ A \code{data.frame} containing the simulated envelope coordinates
         the source of each set of residuals, properly ordered.
 }
 \description{
-Method for the \code{unitcore::df_envelopes} generic. Extracts the coordinates of 
+Method for the \code{regcore::df_envelopes} generic. Extracts the coordinates of 
 simulated envelopes from one or more fitted \code{unitregTMB} models. The result 
 is a tidy data frame in long format, highly optimized for creating faceted 
 graphics using \code{ggplot2}.

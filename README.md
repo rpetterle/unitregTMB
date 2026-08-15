@@ -20,13 +20,13 @@
 
 You can install the development version of `unitregTMB` from GitHub using the `remotes` package. 
 
-**Important:** `unitregTMB` depends on the `unitcore` package, which must be installed first. Please also note that a C++ compiler is required (e.g., Rtools for Windows, Xcode for macOS).
+**Important:** `unitregTMB` depends on the `regcore` package, which must be installed first. Please also note that a C++ compiler is required (e.g., Rtools for Windows, Xcode for macOS).
 
 ```r
 # install.packages("remotes")
 
-# 1. Install the unitcore dependency
-remotes::install_github("rpetterle/unitcore")
+# 1. Install the regcore dependency
+remotes::install_github("rpetterle/regcore")
 
 # 2. Install unitregTMB
 remotes::install_github("rpetterle/unitregTMB")

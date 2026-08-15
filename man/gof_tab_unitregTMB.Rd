@@ -27,8 +27,12 @@ Computes and compares log-likelihood, AIC, and BIC for one or more fitted \code{
 \examples{
 \donttest{
 # Assuming fit1 and fit2 are two fitted unitregTMB models:
-# fit1 <- unitregTMB(Y ~ educ, data = da, family = vasicek())
-# fit2 <- unitregTMB(Y ~ educ, data = da, family = kumaraswamy())
+# fit1 <- unitregTMB(arms ~ age + bmi + gender + ipaq, 
+                     family = vasicek(model_for = "quantile", tau = 0.75), 
+                     data = bodyfat)
+# fit2 <- unitregTMB(arms ~ age + bmi + gender + ipaq, 
+                     family = kumaraswamy(model_for = "quantile", tau = 0.75), 
+                     data = bodyfat)
 # gof_tab(fit1, fit2)
 }
 }
