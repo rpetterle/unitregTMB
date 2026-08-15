@@ -1,4 +1,4 @@
-# unitregTMB: An R Package for Zero- and One-Inflated Mixed-Effects Models on the Unit Interval <img src="man/figures/Logo2.png" align="right" width="309" />
+# unitregTMB: An R Package for Zero- and One-Inflated Mixed-Effects Models on the Unit Interval <img src="man/figures/Logo.png" align="right" width="309" />
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/rpetterle/unitregTMB/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/rpetterle/unitregTMB/actions/workflows/R-CMD-check.yaml)
@@ -80,4 +80,4 @@ vuong_test(fit_simplex, fit_ugamma)
 
 ## License
 
-This package is licensed under the MIT License.
+This package is licensed under the GPL (>= 3) License.
