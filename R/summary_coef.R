@@ -21,15 +21,15 @@
 #' 
 #' @examples
 #' \donttest{
-#' # Assuming 'da' is your dataset:
-#' # fit1 <- unitregTMB(Y ~ educ, data = da, family = vasicek())
-#' # fit2 <- unitregTMB(Y ~ educ, data = da, family = kumaraswamy())
-#' # 
-#' # # Console Output Comparison
-#' # summary_coef(fit1, fit2, component = "all", digits = 2)
-#' # 
-#' # # LaTeX Table Output Comparison
-#' # summary_coef(fit1, fit2, component = "mu", print_tex = TRUE)
+#' fit1 <- unitregTMB(y ~ age + bmi + gender + ipaq + regions + (1 | id), 
+#'                    family = vasicek(model_for = "quantile"), 
+#'                    data = bodyfat_long)
+#' fit2 <- unitregTMB(y ~ age + bmi + gender + ipaq + regions + (1 | id), 
+#'                    family = kumaraswamy(model_for = "quantile"),
+#'                    data = bodyfat_long)
+#'  
+#' summary_coef(fit1, fit2, component = "all", digits = 2)
+#' summary_coef(fit1, fit2, component = "mu", print_tex = TRUE)
 #' }
 #' 
 #' @rdname summary_coef_unitregTMB
@@ -222,7 +222,7 @@ print.summary_coef.unitregTMB <- function(x, digits = NULL, print_tex = NULL, ..
     cat("\\hline\n\\end{tabular}\n\\end{table}\n")
     
   } else {
-    cat("Regression Coefficients (Standard Errors):\n")
+    cat("Regression Coefficients (Standard Errors) for unitregTMB models:\n")
     col_width_first <- max(nchar(rownames(results_matrix))) + 2
     col_width_other <- max(sapply(c(results_matrix, colnames(results_matrix)), nchar)) + 2
     
