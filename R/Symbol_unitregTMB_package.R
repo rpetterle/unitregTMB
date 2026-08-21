@@ -13,12 +13,12 @@ hex_df <- data.frame(x = cos(angles), y = sin(angles))
 limit_val <- 1.05
 
 set.seed(101)
-n_snow <- 2500
-ocean_snow <- data.frame(
-  x = runif(n_snow, -1, 1), y = runif(n_snow, -1, 1),
-  size = runif(n_snow, 0.05, 0.8), alpha = runif(n_snow, 0.1, 0.55)
+n <- 2500
+df_hex <- data.frame(
+  x = runif(n, -1, 1), y = runif(n, -1, 1),
+  size = runif(n, 0.05, 0.8), alpha = runif(n, 0.1, 0.55)
 )
-ocean_snow <- subset(ocean_snow, x^2 + y^2 < 0.85)
+df_hex <- subset(df_hex, x^2 + y^2 < 0.85)
 
 x_seq <- seq(0.001, 0.999, length.out = 1500)
 
@@ -34,7 +34,7 @@ df_curve <- data.frame(x = x_scaled, y = y_scaled, x_orig = x_seq)
 p <- ggplot() +
   
   geom_polygon(data = hex_df, aes(x = x, y = y), fill = "#000814", color = "#48CAE4", linewidth = 4) +
-  geom_point(data = ocean_snow, aes(x = x, y = y, size = size, alpha = alpha), color = "#E0FFFF", shape = 16) +
+  geom_point(data = df_hex, aes(x = x, y = y, size = size, alpha = alpha), color = "#E0FFFF", shape = 16) +
   scale_size_identity() + scale_alpha_identity() +
   
   geom_segment(data = df_curve, aes(x = x, xend = x, y = -0.20, yend = y, color = x_orig), alpha = 0.7) +

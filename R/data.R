@@ -114,3 +114,56 @@
 #' }
 "periodontal"
 
+#' Water Quality Index (WQI) Data
+#'
+#' @description 
+#' A longitudinal dataset containing the Water Quality Index (WQI) evaluated 
+#' at different spatial locations and time periods (quarters). The response 
+#' variable is strictly bounded in the open unit interval (0, 1). This dataset 
+#' has been extensively used in the literature to illustrate mixed-effects 
+#' models for continuous bounded data.
+#' 
+#' @format A \code{data.frame} containing the variables:
+#' \describe{
+#'   \item{id}{Factor. The sample/unit identifier.}
+#'   \item{y}{Numeric. The calculated Water Quality Index (WQI), bounded between 0 and 1.}
+#'   \item{quarter}{Factor. The time of measurement (1, 2, 3, or 4).}
+#'   \item{location}{Factor. The spatial measurement site (\code{Upstream}, \code{Reservoir}, \code{Downstream}).}
+#' }
+#' 
+#' @source Downloaded from \url{http://leg.ufpr.br/doku.php/publications:papercompanions:betamix}
+#' 
+#' @references
+#' Bonat, W. H., Ribeiro Jr, P. J., & Zeviani, W. M. (2015). 
+#' Likelihood analysis for a class of beta mixed models. 
+#' \emph{Journal of Applied Statistics}, 42(2), 252-266. 
+#' \doi{10.1080/02664763.2014.947248}
+#' 
+#' Bonat, W. H., Lopes, J. E., Shimakura, S. E. (2018). 
+#' Likelihood analysis for a class of simplex mixed models. 
+#' \emph{Chilean Journal of Statistics}, 9(1), 3-17.
+#' 
+#' Bonat, W. H., et al. (2019). 
+#' Flexible quasi-beta regression models for continuous bounded data. 
+#' \emph{Statistical Modelling}, 19(5), 525-543. 
+#' \doi{10.1177/1471082X18790847}
+#' 
+#' Petterle, R. R., et al. (2019). 
+#' Quasi-beta longitudinal regression model applied to water quality index data. 
+#' \emph{Journal of Agricultural, Biological and Environmental Statistics}, 24(3), 469-487. 
+#' \doi{10.1007/s13253-019-00360-8}
+#' 
+#' Petterle, R. R., Taconeli, C. A., da Silva, J. L. P., da Silva, G. P., 
+#' Laureano, H. A., & Bonat, W. H. (2021). Unit gamma mixed regression models 
+#' for continuous bounded data. \emph{Journal of Statistical Computation and Simulation}, 92(1), 1-19.
+#'  
+#' @examples
+#' data("wqi", package = "unitregTMB")
+#' head(wqi)
+#' \donttest{
+#' # Example: Fitting a mixed-effects Beta model for the mean
+#' fit <- unitregTMB(y ~ location + quarter + (1 | id), 
+#'                   family = unitgamma(model_for = "mean"),
+#'                   data = wqi)
+#' }
+"wqi"
