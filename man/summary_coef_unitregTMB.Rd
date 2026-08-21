@@ -36,15 +36,15 @@ particularly useful for generating side-by-side model comparisons.
 }
 \examples{
 \donttest{
-# Assuming 'da' is your dataset:
-# fit1 <- unitregTMB(Y ~ educ, data = da, family = vasicek())
-# fit2 <- unitregTMB(Y ~ educ, data = da, family = kumaraswamy())
-# 
-# # Console Output Comparison
-# summary_coef(fit1, fit2, component = "all", digits = 2)
-# 
-# # LaTeX Table Output Comparison
-# summary_coef(fit1, fit2, component = "mu", print_tex = TRUE)
+fit1 <- unitregTMB(y ~ age + bmi + gender + ipaq + regions + (1 | id), 
+                   family = vasicek(model_for = "quantile"), 
+                   data = bodyfat_long)
+fit2 <- unitregTMB(y ~ age + bmi + gender + ipaq + regions + (1 | id), 
+                   family = kumaraswamy(model_for = "quantile"),
+                   data = bodyfat_long)
+ 
+summary_coef(fit1, fit2, component = "all", digits = 2)
+summary_coef(fit1, fit2, component = "mu", print_tex = TRUE)
 }
 
 }
