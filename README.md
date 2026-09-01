@@ -13,7 +13,7 @@
   * **Quantile regression:** Kumaraswamy, Vasicek, unit-Weibull, unit-Gompertz, Johnson SB, arc-secant hyperbolic Weibull (ASHW), unit-Birnbaum-Saunders (UBS).
   * **Mode regression:** Beta, Kumaraswamy, unit-gamma, unit-Gompertz.
 * **Mixed-Effects:** Easily incorporate random intercepts and slopes to account for clustered, longitudinal, or repeated-measures data using standard `(1 | id)` syntax.
-* **Zero- and One-Inflation:** Natively handles data with point masses at the boundaries (exact zeros and/or ones) through a link function and linear predictor.
+* **Zero- and One-Inflation:** Natively handles data with point masses at the boundaries (exact zeros and/or ones) through a link function and a linear predictor.
 * **Model Selection & Diagnostics:** Includes built-in methods for variable selection (`stepCriterion`), model comparison for non-nested models (`vuong_test`, `pairwise_vuong_test`), and extracting mathematical formulas (`extract_equations`).
 
 ## Installation
