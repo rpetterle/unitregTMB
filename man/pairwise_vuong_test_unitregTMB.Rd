@@ -5,59 +5,57 @@
 \title{Pairwise Vuong Comparisons for unitregTMB Models}
 \usage{
 \method{pairwise_vuong_test}{unitregTMB}(
-  lt = NULL,
+  object,
+  ...,
   p.adjust.method = "holm",
   alternative = c("two.sided", "less", "greater"),
   allow_conditional = FALSE,
-  allow_weighted = FALSE,
-  ...
+  allow_weighted = FALSE
 )
 }
 \arguments{
-\item{lt}{Optional list of fitted \code{unitregTMB} objects. If supplied,
-objects in \code{...} are ignored.}
+\item{object}{First fitted \code{unitregTMB} model.}
 
-\item{p.adjust.method}{Multiple-testing adjustment method passed to
-\code{\link[stats]{p.adjust}} through \code{pairwise.table}. The default is
-\code{"holm"}.}
+\item{...}{Additional fitted \code{unitregTMB} models.}
 
-\item{alternative}{Alternative hypothesis passed to
-\code{\link{vuong_test.unitregTMB}}.}
+\item{p.adjust.method}{Multiple-testing correction passed to
+\code{\link[stats]{p.adjust}}. Defaults to \code{"holm"}.}
 
-\item{allow_conditional}{Logical; passed to
-\code{\link{vuong_test.unitregTMB}}.}
+\item{alternative}{Alternative hypothesis passed to \code{vuong_test()}.}
 
-\item{allow_weighted}{Logical; passed to
-\code{\link{vuong_test.unitregTMB}}.}
+\item{allow_conditional}{Whether to allow conditional diagnostics for models
+with latent effects; see \code{vuong_test.unitregTMB}.}
 
-\item{...}{Fitted \code{unitregTMB} objects.}
+\item{allow_weighted}{Whether to allow weighted diagnostics; see
+\code{vuong_test.unitregTMB}.}
 }
 \value{
-An object of class \code{pairwise.htest}.
+An object of class \code{pairwise.htest} containing adjusted
+  pairwise p-values.
 }
 \description{
 Computes pairwise Vuong comparisons among two or more fitted
-\code{unitregTMB} models and adjusts the resulting p-values for multiple
-testing.
+\code{unitregTMB} models and adjusts p-values for multiple testing.
 }
 \details{
-The same limitations as for \code{\link{vuong_test.unitregTMB}} apply to
-every pair. In particular, the standard test is intended for non-nested
-models fitted to independent observations.
+Models must use the same response, observation order, and weights. As with
+\code{vuong_test()}, standard asymptotic inference requires independent
+observations and genuinely non-nested models. Comparisons involving random
+or spatial effects are conditional diagnostics only when explicitly enabled.
+
+A list of models can be supplied using
+\code{do.call(pairwise_vuong_test, models)}. Passing \code{lt = models}
+directly to the \code{regcore} generic is not supported because it dispatches
+on the first argument's class.
 }
 \examples{
 \donttest{
 data("wqi", package = "unitregTMB")
-
-fit_beta <- unitregTMB(y ~ location,
-                       family = beta_fam(model_for = "mean"),
-                       data = wqi)
-
-fit_ug <- unitregTMB(y ~ location,
-                     family = unitgamma(model_for = "mean"),
-                     data = wqi)
-
-pairwise_vuong_test(fit_beta, fit_ug)
+fit_beta <- unitregTMB(y ~ location + quarter,
+                       family = beta_fam(model_for = "mean"), data = wqi)
+fit_simplex <- unitregTMB(y ~ location + quarter,
+                          family = simplex, data = wqi)
+pairwise_vuong_test(fit_beta, fit_simplex)
 }
 
 }

@@ -256,28 +256,23 @@ vuong_test.unitregTMB <- function(object1, object2, alternative = c("two.sided",
   )
 
   family_label <- function(model) {
-    fam <- if (!is.null(model$family) && length(model$family)) {
-      as.character(model$family)[1L]
-    } else {
-      "unitregTMB"
-    }
-
-    role <- model$family_object$model_for
-
-    if (!is.null(role) && length(role)) {
-      role <- as.character(role)[1L]
-      fam <- paste0(fam, " [", role, "]")
-    }
-
-    if (identical(role, "quantile") &&
-        !is.null(model$tau) &&
-        length(model$tau) == 1L &&
-        is.finite(model$tau)) {
-      fam <- paste0(fam, " (tau = ", format(model$tau, trim = TRUE), ")")
-    }
-
-    fam
+  fam <- if (!is.null(model$family) && length(model$family)) {
+    as.character(model$family)[1L]
+  } else {
+    "unitregTMB"
   }
+
+  role <- model$family_object$model_for
+
+  if (identical(role, "quantile") &&
+      !is.null(model$tau) &&
+      length(model$tau) == 1L &&
+      is.finite(model$tau)) {
+    fam <- paste0(fam, " (tau = ", format(model$tau, trim = TRUE), ")")
+  }
+
+  fam
+}
 
   fam1 <- family_label(object1)
   fam2 <- family_label(object2)
@@ -305,42 +300,40 @@ vuong_test.unitregTMB <- function(object1, object2, alternative = c("two.sided",
 #'
 #' @description
 #' Computes pairwise Vuong comparisons among two or more fitted
-#' \code{unitregTMB} models and adjusts the resulting p-values for multiple
-#' testing.
+#' \code{unitregTMB} models and adjusts p-values for multiple testing.
 #'
-#' @param ... Fitted \code{unitregTMB} objects.
-#' @param lt Optional list of fitted \code{unitregTMB} objects. If supplied,
-#'   objects in \code{...} are ignored.
-#' @param p.adjust.method Multiple-testing adjustment method passed to
-#'   \code{\link[stats]{p.adjust}} through \code{pairwise.table}. The default is
-#'   \code{"holm"}.
-#' @param alternative Alternative hypothesis passed to
-#'   \code{\link{vuong_test.unitregTMB}}.
-#' @param allow_conditional Logical; passed to
-#'   \code{\link{vuong_test.unitregTMB}}.
-#' @param allow_weighted Logical; passed to
-#'   \code{\link{vuong_test.unitregTMB}}.
+#' @param object First fitted \code{unitregTMB} model.
+#' @param ... Additional fitted \code{unitregTMB} models.
+#' @param p.adjust.method Multiple-testing correction passed to
+#'   \code{\link[stats]{p.adjust}}. Defaults to \code{"holm"}.
+#' @param alternative Alternative hypothesis passed to \code{vuong_test()}.
+#' @param allow_conditional Whether to allow conditional diagnostics for models
+#'   with latent effects; see \code{vuong_test.unitregTMB}.
+#' @param allow_weighted Whether to allow weighted diagnostics; see
+#'   \code{vuong_test.unitregTMB}.
 #'
 #' @details
-#' The same limitations as for \code{\link{vuong_test.unitregTMB}} apply to
-#' every pair. In particular, the standard test is intended for non-nested
-#' models fitted to independent observations.
+#' Models must use the same response, observation order, and weights. As with
+#' \code{vuong_test()}, standard asymptotic inference requires independent
+#' observations and genuinely non-nested models. Comparisons involving random
+#' or spatial effects are conditional diagnostics only when explicitly enabled.
 #'
-#' @return An object of class \code{pairwise.htest}.
+#' A list of models can be supplied using
+#' \code{do.call(pairwise_vuong_test, models)}. Passing \code{lt = models}
+#' directly to the \code{regcore} generic is not supported because it dispatches
+#' on the first argument's class.
+#'
+#' @return An object of class \code{pairwise.htest} containing adjusted
+#'   pairwise p-values.
 #'
 #' @examples
 #' \donttest{
 #' data("wqi", package = "unitregTMB")
-#'
-#' fit_beta <- unitregTMB(y ~ location,
-#'                        family = beta_fam(model_for = "mean"),
-#'                        data = wqi)
-#'
-#' fit_ug <- unitregTMB(y ~ location,
-#'                      family = unitgamma(model_for = "mean"),
-#'                      data = wqi)
-#'
-#' pairwise_vuong_test(fit_beta, fit_ug)
+#' fit_beta <- unitregTMB(y ~ location + quarter,
+#'                        family = beta_fam(model_for = "mean"), data = wqi)
+#' fit_simplex <- unitregTMB(y ~ location + quarter,
+#'                           family = simplex, data = wqi)
+#' pairwise_vuong_test(fit_beta, fit_simplex)
 #' }
 #'
 #' @author Ricardo Rasmussen Petterle
@@ -349,64 +342,53 @@ vuong_test.unitregTMB <- function(object1, object2, alternative = c("two.sided",
 #' @method pairwise_vuong_test unitregTMB
 #' @rdname pairwise_vuong_test_unitregTMB
 #' @export
-pairwise_vuong_test.unitregTMB <- function(lt = NULL, p.adjust.method = "holm", alternative = c("two.sided", "less", "greater"),
-                                           allow_conditional = FALSE, allow_weighted = FALSE, ...) {
+pairwise_vuong_test.unitregTMB <- function(object, ..., p.adjust.method = "holm",
+                                            alternative = c("two.sided", "less", "greater"),
+                                            allow_conditional = FALSE, allow_weighted = FALSE) {
+  lt <- c(list(object), list(...))
 
-  if (is.null(lt)) lt <- list(...)
-
-  if (!is.list(lt) || length(lt) < 2L) {
+  if (length(lt) < 2L) {
     stop("At least two 'unitregTMB' models are required.", call. = FALSE)
   }
-
-  ok <- vapply(lt, inherits, logical(1), what = "unitregTMB")
-
-  if (!all(ok)) {
+  if (!all(vapply(lt, inherits, logical(1), what = "unitregTMB"))) {
     stop("All supplied objects must inherit from 'unitregTMB'.", call. = FALSE)
   }
 
   for (x in c("allow_conditional", "allow_weighted")) {
     value <- get(x, inherits = FALSE)
-
     if (length(value) != 1L || !is.logical(value) || is.na(value)) {
       stop("'", x, "' must be TRUE or FALSE.", call. = FALSE)
     }
   }
 
-  p.adjust.method <- match.arg(p.adjust.method, choices = stats::p.adjust.methods)
-
+  p.adjust.method <- match.arg(p.adjust.method, stats::p.adjust.methods)
   alternative <- match.arg(alternative)
 
   family_label <- function(model) {
-    fam <- if (!is.null(model$family) && length(model$family)) {
-      as.character(model$family)[1L]
-    } else {
-      "unitregTMB"
-    }
-
-    role <- model$family_object$model_for
-
-    if (!is.null(role) && length(role)) {
-      role <- as.character(role)[1L]
-      fam <- paste0(fam, " [", role, "]")
-    }
-
-    if (identical(role, "quantile") &&
-        !is.null(model$tau) &&
-        length(model$tau) == 1L &&
-        is.finite(model$tau)) {
-      fam <- paste0(fam, " (tau = ", format(model$tau, trim = TRUE), ")")
-    }
-
-    fam
+  fam <- if (!is.null(model$family) && length(model$family)) {
+    as.character(model$family)[1L]
+  } else {
+    "unitregTMB"
   }
+
+  role <- model$family_object$model_for
+
+  if (identical(role, "quantile") &&
+      !is.null(model$tau) &&
+      length(model$tau) == 1L &&
+      is.finite(model$tau)) {
+    fam <- paste0(fam, " (tau = ", format(model$tau, trim = TRUE), ")")
+  }
+
+  fam
+}
 
   labels <- make.unique(vapply(lt, family_label, character(1)))
   nmod <- length(lt)
 
   compare_levels <- function(i, j) {
     vuong_test(
-      lt[[as.integer(i)]],
-      lt[[as.integer(j)]],
+      lt[[as.integer(i)]], lt[[as.integer(j)]],
       alternative = alternative,
       allow_conditional = allow_conditional,
       allow_weighted = allow_weighted
@@ -418,18 +400,18 @@ pairwise_vuong_test.unitregTMB <- function(lt = NULL, p.adjust.method = "holm", 
     level.names = seq_len(nmod),
     p.adjust.method = p.adjust.method
   )
-
   colnames(pval) <- labels[seq_len(nmod - 1L)]
   rownames(pval) <- labels[2L:nmod]
 
-  out <- list(method = "Pairwise Vuong comparisons for unitregTMB models",
-              data.name = paste(labels, collapse = ", "),
-              p.value = pval,
-              p.adjust.method = p.adjust.method,
-              alternative = alternative,
-              conditional = allow_conditional,
-              weighted = allow_weighted)
-
+  out <- list(
+    method = "Pairwise Vuong comparisons for unitregTMB models",
+    data.name = paste(labels, collapse = ", "),
+    p.value = pval,
+    p.adjust.method = p.adjust.method,
+    alternative = alternative,
+    conditional = allow_conditional,
+    weighted = allow_weighted
+  )
   class(out) <- "pairwise.htest"
   out
 }
