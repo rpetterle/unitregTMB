@@ -122,10 +122,10 @@ NumericVector cpp_rugamma_mean(const int n, const NumericVector mu, const Numeri
 // ----------------------------------------------------------------------------
 // 2. MODE Parameterization
 // mu  : Mode (0 < mu < 1)
-// phi : Shape (phi > 0)
+// phi : Shifted shape (phi > 0); shape a = 1 + phi
 //
 // Conversion to Rate (beta):
-// beta = (1 + log(mu) - phi) / log(mu)
+// beta = 1 + phi / (-log(mu))
 // ----------------------------------------------------------------------------
 
 // [[Rcpp::export]]
@@ -143,15 +143,15 @@ NumericVector cpp_dugamma_mode(const NumericVector x, const NumericVector mu, co
     if (cur_x <= 0.0 || cur_x >= 1.0) { out[i] = log_prob ? R_NegInf : 0.0; continue; }
     
     double log_mu = std::log(cur_mu);
-    double beta = (1.0 + log_mu - cur_phi) / log_mu;
+    double beta = 1.0 + cur_phi / (-log_mu);
     
     if (beta <= 0.0) { out[i] = R_NaN; continue; }
     
     double log_y = std::log(cur_x);
     double log_neg_log_y = std::log(-log_y);
     
-    double log_pdf = cur_phi * std::log(beta) - R::lgammafn(cur_phi) + 
-                     (beta - 1.0) * log_y + (cur_phi - 1.0) * log_neg_log_y;
+    double log_pdf = (1.0 + cur_phi) * std::log(beta) - R::lgammafn(1.0 + cur_phi) + 
+                     (beta - 1.0) * log_y + cur_phi * log_neg_log_y;
     
     out[i] = log_prob ? log_pdf : std::exp(log_pdf);
   }
@@ -170,14 +170,14 @@ NumericVector cpp_pugamma_mode(const NumericVector q, const NumericVector mu, co
     double cur_phi = phi[i % nphi];
     
     if (cur_mu <= 0.0 || cur_mu >= 1.0 || cur_phi <= 0.0) { out[i] = R_NaN; continue; }
-    if (cur_q <= 0.0) { out[i] = (log_prob ? R_NegInf : 0.0); continue; }
-    if (cur_q >= 1.0) { out[i] = (log_prob ? 0.0 : 1.0); continue; }
+    if (cur_q <= 0.0) { out[i] = log_prob ? (lower_tail ? R_NegInf : 0.0) : (lower_tail ? 0.0 : 1.0); continue; }
+    if (cur_q >= 1.0) { out[i] = log_prob ? (lower_tail ? 0.0 : R_NegInf) : (lower_tail ? 1.0 : 0.0); continue; }
     
     double log_mu = std::log(cur_mu);
-    double beta = (1.0 + log_mu - cur_phi) / log_mu;
+    double beta = 1.0 + cur_phi / (-log_mu);
     if (beta <= 0.0) { out[i] = R_NaN; continue; }
     
-    out[i] = R::pgamma(-std::log(cur_q), cur_phi, 1.0/beta, !lower_tail, log_prob);
+    out[i] = R::pgamma(-std::log(cur_q), 1.0 + cur_phi, 1.0/beta, !lower_tail, log_prob);
   }
   return out;
 }
@@ -202,10 +202,10 @@ NumericVector cpp_qugamma_mode(const NumericVector p, const NumericVector mu, co
     if (pp == 1.0) { out[i] = lower_tail ? 1.0 : 0.0; continue; }
     
     double log_mu = std::log(cur_mu);
-    double beta = (1.0 + log_mu - cur_phi) / log_mu;
+    double beta = 1.0 + cur_phi / (-log_mu);
     if (beta <= 0.0) { out[i] = R_NaN; continue; }
     
-    double x_quant = R::qgamma(pp, cur_phi, 1.0/beta, !lower_tail, false);
+    double x_quant = R::qgamma(pp, 1.0 + cur_phi, 1.0/beta, !lower_tail, false);
     out[i] = std::exp(-x_quant);
   }
   return out;
@@ -223,10 +223,10 @@ NumericVector cpp_rugamma_mode(const int n, const NumericVector mu, const Numeri
     if (cur_mu <= 0.0 || cur_mu >= 1.0 || cur_phi <= 0.0) { out[i] = R_NaN; continue; }
     
     double log_mu = std::log(cur_mu);
-    double beta = (1.0 + log_mu - cur_phi) / log_mu;
+    double beta = 1.0 + cur_phi / (-log_mu);
     if (beta <= 0.0) { out[i] = R_NaN; continue; }
     
-    out[i] = std::exp(-R::rgamma(cur_phi, 1.0/beta));
+    out[i] = std::exp(-R::rgamma(1.0 + cur_phi, 1.0/beta));
   }
   return out;
 }

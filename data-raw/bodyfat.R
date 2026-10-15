@@ -16,7 +16,7 @@ bodyfat <- raw_df %>%
     
     gender = factor(gender, levels = c(1, 2), labels = c("Female", "Male")),
     ipaq = factor(ipaq, 
-                  levels = c(0, 1, 2), # Altere estes números conforme o seu CSV original
+                  levels = c(0, 1, 2), 
                   labels = c("Sedentary", "Insufficiently active", "Active"))
   )
 

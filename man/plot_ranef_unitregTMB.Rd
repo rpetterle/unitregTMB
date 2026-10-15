@@ -2,38 +2,71 @@
 % Please edit documentation in R/plot_ranef.R
 \name{plot_ranef.unitregTMB}
 \alias{plot_ranef.unitregTMB}
-\title{Plot Conditional Modes (Caterpillar Plot) for unitregTMB}
+\title{Caterpillar Plot of Ordinary Random Effects}
 \usage{
-\method{plot_ranef}{unitregTMB}(object, level = 0.95, ...)
+\method{plot_ranef}{unitregTMB}(
+  object,
+  component = c("mu", "phi", "p0", "p1"),
+  term = 1L,
+  effect = NULL,
+  level = 0.95,
+  ...
+)
 }
 \arguments{
-\item{object}{A fitted \code{unitregTMB} model.}
+\item{object}{A fitted \code{unitregTMB} object.}
 
-\item{level}{Confidence level for the error bars. Default is 0.95.}
+\item{component}{Component containing the random effect: \code{"mu"},
+\code{"phi"}, \code{"p0"}, or \code{"p1"}.}
 
-\item{...}{Additional graphical parameters passed to \code{plot}.}
+\item{term}{Random-effects term to plot. Supply either a positive integer,
+an unambiguous grouping-factor name, or the term label returned by
+\code{random_effects()}.}
+
+\item{effect}{Random coefficient to plot, such as \code{"(Intercept)"} or a
+slope name. If \code{NULL}, the intercept is used when available;
+otherwise the first random coefficient is selected.}
+
+\item{level}{Numeric scalar in \eqn{(0,1)} giving the confidence level for
+intervals based on conditional-mode standard errors.}
+
+\item{...}{Additional graphical arguments passed to
+\code{\link[graphics]{plot.default}}.}
 }
 \value{
-Invisibly returns a \code{data.frame} containing the sorted estimated random effects 
-  (BLUPs), their standard errors, and the lower and upper bounds of the confidence intervals.
+Invisibly returns a data frame containing the grouping-factor level,
+  conditional mode, standard error, and lower and upper interval limits used
+  in the plot.
 }
 \description{
-Produces a caterpillar plot of the conditional modes (BLUPs) of the random effects 
-from a fitted \code{unitregTMB} model, along with their confidence intervals.
+Produces a caterpillar plot of conditional modes for one ordinary
+random-effects term in any active \code{unitregTMB} distributional
+predictor.
+}
+\details{
+The plotted intervals are Wald-type intervals based on the conditional-mode
+standard errors returned by TMB. They summarize uncertainty in the
+conditional modes and should not be interpreted as confidence intervals for
+population-level fixed effects.
+
+If the same grouping factor occurs in more than one random-effects term, its
+grouping-factor name is ambiguous; in that case use an integer term index or
+the explicit term label.
 }
 \examples{
 \donttest{
-# fit <- unitregTMB(y ~ age + bmi + gender + ipaq + (1 | id), 
-#                   phi.formula = ~ 1,
-#                   family = unitgamma(model_for = "mean"),  
-#                   data = bodyfat_long)
+data("wqi", package = "unitregTMB")
 
-# # Generate the caterpillar plot
-# plot_ranef(fit, level = 0.95)
-# 
-# # You can also save the data used for the plot
-# re_data <- plot_ranef(fit)
-# head(re_data)
+fit <- unitregTMB(
+  y ~ location + quarter + (1 | id),
+  data = wqi,
+  family = unitgamma(model_for = "mean")
+)
+
+plot_ranef(fit, component = "mu")
 }
 
+}
+\author{
+Ricardo Rasmussen Petterle
 }

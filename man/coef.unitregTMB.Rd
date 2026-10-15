@@ -2,31 +2,33 @@
 % Please edit documentation in R/methods.R
 \name{coef.unitregTMB}
 \alias{coef.unitregTMB}
-\title{Extract Model Coefficients}
+\title{Extract Fixed-Effect Coefficients}
 \usage{
 \method{coef}{unitregTMB}(object, type = c("all", "mu", "phi", "p0", "p1"), ...)
 }
 \arguments{
-\item{object}{An object of class \code{unitregTMB}.}
+\item{object}{A fitted \code{unitregTMB} object.}
 
-\item{type}{A character string indicating the type of coefficients to extract. 
-Available options are \code{"all"} (default), \code{"mu"} (location), 
-\code{"phi"} (precision/dispersion), \code{"p0"} (zero-inflation), or \code{"p1"} (one-inflation).}
+\item{type}{Component to extract: \code{"all"}, \code{"mu"}, \code{"phi"},
+\code{"p0"}, or \code{"p1"}.}
 
-\item{...}{Further arguments passed to or from other methods.}
+\item{...}{Additional arguments, currently unused.}
 }
 \value{
-A numeric vector of estimated coefficients.
+A numeric vector of coefficients.
 }
 \description{
-Extracts the estimated coefficients from a fitted \code{unitregTMB} model.
+Extracts regression coefficients from one distributional component or from
+all active components.
 }
 \examples{
 \donttest{
-# fit <- unitregTMB(arms ~ age + bmi + gender + ipaq, 
-                    family = simplex(), 
-                    data = bodyfat)
-# coef(fit, type = "all")
-# coef(fit, type = "mu")
+set.seed(1)
+dat <- data.frame(y = plogis(rnorm(40)), x = rnorm(40))
+fit <- unitregTMB(
+  y ~ x, data = dat, family = unitgamma(model_for = "mean")
+)
+coef(fit, type = "mu")
+coef(fit, type = "all")
 }
 }

@@ -8,68 +8,74 @@
   object1,
   object2,
   alternative = c("two.sided", "less", "greater"),
+  allow_conditional = FALSE,
+  allow_weighted = FALSE,
   ...
 )
 }
 \arguments{
-\item{object1, object2}{Objects of class \code{unitregTMB} containing the fitted models.}
+\item{object1, object2}{Fitted \code{unitregTMB} objects.}
 
-\item{alternative}{Indicates the alternative hypothesis and must be one
-of \code{"two.sided"} (default), \code{"less"}, or \code{"greater"}. You can
-specify just the initial letter of the value.}
+\item{alternative}{Alternative hypothesis: \code{"two.sided"},
+\code{"less"}, or \code{"greater"}. The \code{"greater"} alternative tests
+whether \code{object1} has the larger expected pointwise log-likelihood.}
 
-\item{...}{Additional arguments passed to methods.}
+\item{allow_conditional}{Logical. Models containing ordinary random effects
+or spatial effects do not have an observation-wise additive marginal
+likelihood after latent effects are integrated out. If \code{FALSE}, the
+comparison stops. If \code{TRUE}, a conditional diagnostic is computed.}
+
+\item{allow_weighted}{Logical. Standard Vuong asymptotics do not directly
+cover arbitrary non-unit prior weights. If \code{FALSE}, weighted models
+are rejected. If \code{TRUE}, a weighted pointwise diagnostic is computed.}
+
+\item{...}{Additional arguments, currently unused.}
 }
 \value{
-A list with class \code{"htest"} containing the following components:
-\item{statistic}{the value of the test statistic.}
-\item{p.value}{the p-value of the test.}
-\item{alternative}{a character string describing the alternative hypothesis.}
-\item{method}{a character string with the method used.}
-\item{data.name}{a character string given the name of families models under comparison.}
+An object of class \code{htest}.
 }
 \description{
-Performs the Vuong likelihood ratio test for model selection 
-between two fitted non-nested models of class \code{unitregTMB}.
+Performs the Vuong test for two non-nested \code{unitregTMB} models using
+observation-level log-likelihood contributions from the response model.
 }
 \details{
-The statistic of Vuong likelihood ratio test for compare two
-non-nested regression models is defined by
-\deqn{T = \frac{1}{\widehat{\omega}^2\,\sqrt{n}}\,\sum_{i=1}^{n}\,
-\log\frac{f(y_i \mid \boldsymbol{x}_i, \widehat{\boldsymbol{\theta}})}{
-g(y_i \mid \boldsymbol{x}_i,\widehat{\boldsymbol{\gamma}})}}
-where
-\deqn{\widehat{\omega}^2 = \frac{1}{n}\,\sum_{i=1}^{n}\,\left(\log \frac{f(y_i \mid \boldsymbol{x}_i, \widehat{\boldsymbol{\theta}})}{g(y_i \mid \boldsymbol{x}_i, \widehat{\boldsymbol{\gamma}})}\right)^2 - \left[\frac{1}{n}\,\sum_{i=1}^{n}\,\left(\log \frac{f(y_i \mid \boldsymbol{x}_i, \widehat{\boldsymbol{\theta}})}{ g(y_i \mid \boldsymbol{x}_i, \widehat{\boldsymbol{\gamma}})}\right)\right]^2}
-is an estimator for the variance of the log-likelihood ratio.
+Let \eqn{m_i = \ell_{1i} - \ell_{2i}} denote the pointwise log-likelihood
+difference. The statistic is
+\deqn{
+V = \frac{\sqrt{n}\,\bar m}{s_m},
+}
+where \eqn{s_m^2} is the sample variance of the \eqn{m_i}. Under the usual
+regularity conditions for independent observations and genuinely non-nested
+models, the null distribution is asymptotically standard normal.
 
-When \eqn{n \rightarrow \infty} we have that \eqn{T \rightarrow N(0, 1)} in distribution.
-Therefore, at \eqn{\alpha\%} level of significance, the null hypothesis of
-the equivalence of the competing models is rejected if \eqn{|T| > z_{\alpha/2}},
-where \eqn{z_{\alpha/2}} is the \eqn{\alpha/2} quantile of standard normal distribution.
+The function does not attempt to determine whether two arbitrary
+multi-parameter \code{unitregTMB} specifications are nested. The user should
+use this test only for non-nested comparisons.
 
-In practical terms, \eqn{f(y_i \mid \boldsymbol{x}_i, \widehat{\boldsymbol{\theta}})}
-is better (worse) than \eqn{g(y_i \mid \boldsymbol{x}_i, \widehat{\boldsymbol{\gamma}})}
-if \eqn{T > z_{\alpha/2}} (or \eqn{T < -z_{\alpha/2}}).
+When latent effects are present, the marginal likelihood contains
+cluster- or field-level integrals and is not additive over observations.
+Setting \code{allow_conditional = TRUE} therefore produces only a diagnostic
+comparison based on the conditional response log-likelihood evaluated at the
+fitted latent-effect modes.
 }
 \examples{
 \donttest{
-# Simulate independent data
-sim_data <- sim_unitreg(n_id = 500, family = vasicek(), formula_mu = ~ x, 
-                        beta_mu = c(0.5, -0.5), beta_phi = 1.5,
-                        cov_config = list(x = list(dist = "normal")))
+data("wqi", package = "unitregTMB")
 
-# Fit two competing models
-fit_vasicek <- unitregTMB(Y ~ x, data = sim_data, family = vasicek())
-fit_beta <- unitregTMB(Y ~ x, data = sim_data, family = beta_fam())
+fit_beta <- unitregTMB(y ~ location + quarter,
+                       family = beta_fam(model_for = "mean"),
+                       data = wqi)
 
-# Perform Vuong test
-ans <- vuong_test(fit_vasicek, fit_beta)
-print(ans)
+fit_ug <- unitregTMB(y ~ location + quarter,
+                     family = unitgamma(model_for = "mean"),
+                     data = wqi)
+
+vuong_test(fit_beta, fit_ug)
 }
 
 }
 \references{
-Vuong, Q. (1989). Likelihood ratio tests for model selection and
+Vuong, Q. H. (1989). Likelihood ratio tests for model selection and
 non-nested hypotheses. \emph{Econometrica}, \bold{57}(2), 307--333.
 }
 \author{

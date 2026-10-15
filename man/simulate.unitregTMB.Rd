@@ -4,33 +4,76 @@
 \alias{simulate.unitregTMB}
 \title{Simulate Responses from a Fitted unitregTMB Model}
 \usage{
-\method{simulate}{unitregTMB}(object, nsim = 1, seed = NULL, ...)
+\method{simulate}{unitregTMB}(
+  object,
+  nsim = 1,
+  seed = NULL,
+  newdata = NULL,
+  re.form = NULL,
+  allow.new.levels = FALSE,
+  offset = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{A fitted \code{unitregTMB} object.}
 
-\item{nsim}{Number of response vectors to simulate. Defaults to 1.}
+\item{nsim}{Positive integer giving the number of response vectors to
+simulate.}
 
-\item{seed}{An object specifying if and how the random number generator should be initialized.}
+\item{seed}{Optional finite numeric random-number seed.}
 
-\item{...}{Additional optional arguments.}
+\item{newdata}{Optional data frame at which to simulate.}
+
+\item{re.form}{\code{NULL} uses fitted ordinary and spatial latent effects.
+\code{NA} or \code{~0} excludes them and gives population-level
+simulations.}
+
+\item{allow.new.levels}{Logical; passed to \code{predict.unitregTMB} when
+\code{newdata} is supplied.}
+
+\item{offset}{Optional numeric offset for the \code{mu} predictor in
+\code{newdata}.}
+
+\item{...}{Additional arguments passed to \code{predict.unitregTMB}.}
 }
 \value{
-A data.frame with \code{nsim} columns containing the simulated responses.
+A data frame with \code{nsim} simulated response vectors.
 }
 \description{
-Generates simulated response data from a fitted \code{unitregTMB} model. 
-This function perfectly mimics the data-generating process (DGP) estimated by the model, 
-including the continuous distribution and any zero/one inflation parameters.
+Generates responses from the fitted continuous distribution and optional
+zero/one augmentation. By default, simulations are conditional on the fitted
+ordinary random effects and proper CAR spatial effects in all active
+distributional predictors.
+}
+\details{
+This method conditions on fitted latent-effect modes when
+\code{re.form = NULL}; it does not draw new Gaussian random effects or a new
+CAR field. Use \code{\link{sim_unitreg}} when a complete data-generating
+process with newly generated latent effects is required.
+
+The continuous response is not clipped at an arbitrary tolerance. Exact
+floating-point values of zero or one returned by a continuous random
+generator are moved only to machine-representable interior values because
+the supported continuous components have open-unit support. Positive values
+arbitrarily close to either boundary are otherwise left unchanged.
 }
 \examples{
 \donttest{
-# Assuming 'da' is your dataset:
-# fit <- unitregTMB(Y ~ educ, p0.formula = ~ 1, data = da, family = vasicek())
-# 
-# # Simulate 5 new response vectors
-# sim_data <- simulate(fit, nsim = 5, seed = 123)
-# head(sim_data)
+data("wqi", package = "unitregTMB")
+
+fit <- unitregTMB(
+  y ~ location + quarter + (1 | id),
+  data = wqi,
+  family = unitgamma(model_for = "mean")
+)
+
+sim1 <- simulate(fit, nsim = 2, seed = 123)
+head(sim1)
+sim2 <- simulate(fit, nsim = 2, seed = 123, re.form = NA)
 }
 
+}
+\author{
+Ricardo Rasmussen Petterle
 }

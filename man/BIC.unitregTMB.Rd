@@ -2,23 +2,28 @@
 % Please edit documentation in R/methods.R
 \name{BIC.unitregTMB}
 \alias{BIC.unitregTMB}
-\title{Extract Bayesian Information Criterion}
+\title{Bayesian Information Criterion}
 \usage{
 \method{BIC}{unitregTMB}(object, ...)
 }
 \arguments{
-\item{object}{An object of class \code{unitregTMB}.}
+\item{object}{A fitted \code{unitregTMB} object.}
 
-\item{...}{Further arguments passed to or from other methods.}
+\item{...}{Additional arguments, currently unused.}
 }
 \value{
-A numeric value representing the BIC.
+A numeric BIC value.
 }
 \description{
-Extracts the Bayesian Information Criterion (BIC) of a fitted \code{unitregTMB} model.
+Computes the BIC for a fitted \code{unitregTMB} model.
 }
 \examples{
 \donttest{
-# BIC(fit)
+set.seed(1)
+dat <- data.frame(y = plogis(rnorm(40)), x = rnorm(40))
+fit <- unitregTMB(
+  y ~ x, data = dat, family = unitgamma(model_for = "mean")
+)
+BIC(fit)
 }
 }

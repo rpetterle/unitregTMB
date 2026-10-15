@@ -108,7 +108,6 @@ NumericVector cpp_qbeta_mean(const NumericVector p,
 NumericVector cpp_rbeta_mean(const int n, 
                              const NumericVector mu, 
                              const NumericVector phi) {
-    // Para random generation, o tamanho 'n' é fixo pelo usuário
     NumericVector out(n);
     int nmu = mu.size();
     int nphi = phi.size();

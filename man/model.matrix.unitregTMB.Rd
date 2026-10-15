@@ -2,27 +2,33 @@
 % Please edit documentation in R/methods.R
 \name{model.matrix.unitregTMB}
 \alias{model.matrix.unitregTMB}
-\title{Extract the Design Matrix}
+\title{Extract a Fixed-Effect Design Matrix}
 \usage{
 \method{model.matrix}{unitregTMB}(object, component = c("mu", "phi", "p0", "p1"), ...)
 }
 \arguments{
-\item{object}{An object of class \code{unitregTMB}.}
+\item{object}{A fitted \code{unitregTMB} object.}
 
-\item{component}{Character string indicating which design matrix to extract: 
-\code{"mu"} (location), \code{"phi"} (precision/dispersion), \code{"p0"} (zero-inflation), 
-or \code{"p1"} (one-inflation).}
+\item{component}{Component to extract: \code{"mu"}, \code{"phi"},
+\code{"p0"}, or \code{"p1"}.}
 
-\item{...}{Further arguments passed to or from other methods.}
+\item{...}{Additional arguments, currently unused.}
 }
 \value{
-A design matrix representing the chosen model component.
+The corresponding fixed-effect design matrix, or \code{NULL} for an
+  inactive boundary component.
 }
 \description{
-Extracts the design matrix for a specific model component of a \code{unitregTMB} object.
+Extracts the fixed-effect design matrix used for one distributional
+predictor.
 }
 \examples{
 \donttest{
-# model.matrix(fit, component = "mu")
+set.seed(1)
+dat <- data.frame(y = plogis(rnorm(40)), x = rnorm(40))
+fit <- unitregTMB(
+  y ~ x, data = dat, family = unitgamma(model_for = "mean")
+)
+head(model.matrix(fit, component = "mu"))
 }
 }

@@ -4,42 +4,56 @@
 \alias{anova.unitregTMB}
 \title{Likelihood Ratio Tests for unitregTMB Models}
 \usage{
-\method{anova}{unitregTMB}(object, ..., test = "Chisq")
+\method{anova}{unitregTMB}(object, ..., test = c("Chisq"))
 }
 \arguments{
-\item{object}{A fitted model object of class \code{unitregTMB}.}
+\item{object}{A fitted object of class \code{unitregTMB}.}
 
-\item{...}{Additional fitted model objects of class \code{unitregTMB} to be compared. 
-At least one additional model must be provided.}
+\item{...}{Additional fitted \code{unitregTMB} objects to be compared with
+\code{object}.}
 
-\item{test}{A character string specifying the test statistic to use. Currently, 
-the only supported option is \code{"Chisq"}, which computes the Likelihood 
-Ratio Test based on the Chi-square distribution.}
+\item{test}{Character string specifying the reference test. Currently only
+\code{"Chisq"} is supported.}
 }
 \value{
-An object of class \code{anova.unitregTMB} inheriting from \code{data.frame}. 
-  The returned data frame contains the following columns:
-  \item{Df}{The number of estimated parameters in the model.}
-  \item{AIC}{Akaike Information Criterion.}
-  \item{BIC}{Bayesian Information Criterion.}
-  \item{logLik}{The log-likelihood of the model.}
-  \item{deviance}{The deviance of the model (-2 * log-likelihood).}
-  \item{Chisq}{The test statistic for the likelihood ratio test.}
-  \item{Chi Df}{The difference in degrees of freedom between the models.}
-  \item{Pr(>Chisq)}{The p-value associated with the likelihood ratio test.}
+An object of class \code{anova.unitregTMB} inheriting from
+  \code{data.frame}. The table contains columns \code{Df}, \code{AIC},
+  \code{BIC}, \code{logLik}, \code{deviance}, \code{Chisq},
+  \code{Chi Df}, and \code{Pr(>Chisq)}.
 }
 \description{
-Computes an analysis of deviance table for two or more fitted \code{unitregTMB} 
-models. This function performs a Likelihood Ratio Test (LRT) to compare nested models, 
-providing statistics such as degrees of freedom, AIC, BIC, log-likelihood, 
-and the corresponding p-value.
+Compares two or more fitted \code{unitregTMB} models by likelihood ratio tests
+and returns an analysis-of-deviance table with model degrees of freedom,
+information criteria, log-likelihoods, deviances, likelihood ratio statistics,
+degrees-of-freedom differences, and p-values.
+}
+\details{
+Models are ordered by their number of estimated parameters before consecutive
+likelihood ratio comparisons are computed. The models must use the same
+response values and observation order, the same prior weights and offset, and
+the same distributional family, parameterization, link, and quantile level
+when applicable.
+
+The usual chi-square reference distribution assumes nested models and regular
+likelihood conditions. Comparisons that add or remove random effects,
+spatial effects, or zero/one-inflation components can involve parameters on
+the boundary of the parameter space. In such cases the standard chi-square
+p-value can be non-standard and should be interpreted with caution.
 }
 \examples{
-\dontrun{
-# Assuming fit1 and fit2 are fitted unitregTMB models
-# fit1 <- unitregTMB(y ~ x1, data = da, family = unitgamma)
-# fit2 <- unitregTMB(y ~ x1 + x2, data = da, family = unitgamma)
-# anova(fit1, fit2)
+\donttest{
+data("wqi", package = "unitregTMB")
+
+fit0 <- unitregTMB(y ~ 1,
+                   family = unitgamma(model_for = "mean"),
+                   data = wqi)
+
+fit1 <- unitregTMB(y ~ location,
+                   family = unitgamma(model_for = "mean"),
+                   data = wqi)
+
+tab <- anova(fit0, fit1)
+print(tab)
 }
 
 }

@@ -1,0 +1,9 @@
+utils::globalVariables(
+  c(
+    "coef_name",
+    "estimate",
+    "ci_lower",
+    "ci_upper",
+    "model_name"
+  )
+)

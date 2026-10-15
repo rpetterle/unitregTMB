@@ -33,7 +33,7 @@ rugamma_mode(n, mu, phi)
 
 \item{mu}{mean or mode parameter, depending on the function used (0 < mu < 1).}
 
-\item{phi}{shape parameter (phi > 0).}
+\item{phi}{Positive shape parameter. In modal functions, the underlying Gamma shape is a = 1 + phi; in mean functions, the shape is a = phi.}
 
 \item{log, log.p}{logical; if TRUE, probabilities p are given as log(p).}
 
@@ -48,7 +48,9 @@ Density, distribution function, quantile function, and random number generation 
 Unit-gamma distribution parameterized by the Mean or Mode.
 }
 \details{
-The Unit-gamma distribution is obtained by the transformation \eqn{Y = \exp(-X)}, where \eqn{X \sim \Gamma(\text{shape}=\phi, \text{rate}=\beta)}.
+The Unit-gamma distribution is obtained by the transformation \eqn{Y = \exp(-X)}, where \eqn{X} is Gamma distributed.
+In the modal parameterization, \eqn{a=1+\phi} and \eqn{\beta=1+\phi/(-\log\mu)}, with \eqn{\phi>0}.
+In the mean parameterization, the shape remains \eqn{a=\phi}.
 }
 \examples{
 # 1. Mean Parameterization

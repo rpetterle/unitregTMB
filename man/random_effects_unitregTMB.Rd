@@ -2,30 +2,51 @@
 % Please edit documentation in R/random_effects.R
 \name{random_effects.unitregTMB}
 \alias{random_effects.unitregTMB}
-\title{Extract Random Effects (BLUPs) from a unitregTMB Object}
+\title{Extract Ordinary Random Effects from a unitregTMB Model}
 \usage{
-\method{random_effects}{unitregTMB}(object, ...)
+\method{random_effects}{unitregTMB}(object, component = c("mu", "phi", "p0", "p1", "all"), ...)
 }
 \arguments{
-\item{object}{A fitted object of class "unitregTMB".}
+\item{object}{A fitted \code{unitregTMB} object.}
 
-\item{...}{Additional arguments (not used).}
+\item{component}{Component to extract: \code{"mu"}, \code{"phi"},
+\code{"p0"}, \code{"p1"}, or \code{"all"}. The default is \code{"mu"}.}
+
+\item{...}{Additional arguments, currently unused.}
 }
 \value{
-A list (one element per random term/group) 
-        containing data.frames of the random effects.
+For a single component, a named list with one data frame per
+  random-effects term. Rows correspond to grouping-factor levels and columns
+  to random coefficients. For \code{component = "all"}, a named list with
+  entries \code{mu}, \code{phi}, \code{p0}, and \code{p1} is returned.
 }
 \description{
-Extracts the Best Linear Unbiased Predictors (BLUPs) for the random 
-effects of a fitted \code{unitregTMB} model.
+Extracts conditional modes of ordinary Gaussian random effects from one
+distributional predictor or from all active predictors in a fitted
+\code{unitregTMB} model.
+}
+\details{
+Random effects are returned term by term using the same grouping-level and
+random-coefficient ordering used to construct the TMB random-effects design
+matrix. For \code{component = "all"}, inactive components or components
+without ordinary random effects are returned as \code{NULL}.
 }
 \examples{
 \donttest{
-# Assuming 'da' is your dataset and 'id' is the grouping variable:
-# fit <- unitregTMB(Y ~ educ + (1 | id), data = da, family = vasicek())
-# 
-# # Extract the random effects as a list of data.frames
-# re <- random_effects(fit)
-# head(re$id)
+data("wqi", package = "unitregTMB")
+
+fit <- unitregTMB(
+  y ~ location + quarter + (1 | id),
+  data = wqi,
+  family = unitgamma(model_for = "mean")
+)
+
+re <- random_effects(fit, component = "mu")
+head(re[[1]])
+random_effects(fit, component = "all")
 }
+
+}
+\author{
+Ricardo Rasmussen Petterle
 }

@@ -8,12 +8,12 @@
 A data frame with 1160 rows and 8 variables:
 \describe{
   \item{id}{Subject identifier.}
-  \item{tooth}{Tooth types (molar; premolar; canine; incisor).}
-  \item{y}{The response variable lies on the closed interval [0,1] and represents the proportion of diseased tooth sites for each of the four tooth types. Contains exact zeros and ones.}
-  \item{gender}{Patient gender (Male; Female).}
+  \item{tooth}{Tooth type (\code{molar}, \code{premolar}, \code{canine}, \code{incisor}).}
+  \item{y}{Proportion of diseased tooth sites for each tooth type. The response lies in \eqn{[0,1]} and contains exact zeros and ones.}
+  \item{gender}{Patient gender (\code{Male}, \code{Female}).}
   \item{age}{Patient age in years.}
-  \item{hba1c}{Glycosylated hemoglobin status indicator (Controlled, <7\%; Uncontrolled, >=7\%).}
-  \item{smoker}{Smoking status (Non-smoker; Smoker).}
+  \item{hba1c}{Glycosylated hemoglobin status indicator (\code{Controlled}, <7\%; \code{Uncontrolled}, >=7\%).}
+  \item{smoker}{Smoking status (\code{Non-smoker}, \code{Smoker}).}
   \item{bmi}{Body mass index.}
 }
 }
@@ -26,16 +26,21 @@ periodontal
 }
 \description{
 The data come from a study conducted at the Medical University of South Carolina by Fernandes et al. (2006).
-The data set involves 1160 clustered observations from 290 subjects.
+The data set contains 1160 clustered observations from 290 subjects. The
+response includes exact zeros and ones; \code{unitregTMB} automatically
+activates intercept-only zero- and one-inflation submodels when the
+corresponding boundary values are present and no explicit inflation formulas
+are supplied.
 }
 \examples{
 data("periodontal", package = "unitregTMB")
 head(periodontal)
 \donttest{
-# Example: Fitting a zero-and-one augmented mixed-effects model
-# fit <- unitregTMB(y ~ age + gender + tooth + (1 | id), 
-#                   data = periodontal, 
-#                   family = unitgamma())
+fit <- unitregTMB(
+  y ~ age + gender + tooth + (1 | id),
+  data = periodontal,
+  family = unitgamma(model_for = "mean")
+)
 }
 }
 \references{

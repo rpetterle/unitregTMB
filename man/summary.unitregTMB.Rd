@@ -2,32 +2,30 @@
 % Please edit documentation in R/methods.R
 \name{summary.unitregTMB}
 \alias{summary.unitregTMB}
-\title{Summary for unitregTMB Models}
+\title{Summarize a unitregTMB Model}
 \usage{
 \method{summary}{unitregTMB}(object, ...)
 }
 \arguments{
-\item{object}{An object of class \code{unitregTMB}.}
+\item{object}{A fitted \code{unitregTMB} object.}
 
-\item{...}{Further arguments passed to or from other methods.}
+\item{...}{Additional arguments, currently unused.}
 }
 \value{
-An object of class \code{summary.unitregTMB} containing the coefficient table, 
-log-likelihood, model family, link functions, and random effects variance components 
-(if applicable).
+An object of class \code{summary.unitregTMB}.
 }
 \description{
-Computes and extracts summary statistics for a fitted \code{unitregTMB} model, 
-including fixed effects, standard errors, z-values, and p-values.
+Computes Wald summaries for the fixed effects and collects ordinary random
+effects and proper CAR spatial components for all active distributional
+predictors.
 }
 \examples{
 \donttest{
-# Assuming a dataset 'bodyfat' and a fitted model 'fit':
-# fit <- unitregTMB(y ~ age + bmi + gender + ipaq + (1 | id), 
-#                   phi.formula = ~ 1,
-#                   family = unitgamma(model_for = "mean"),  
-#                   data = bodyfat_long)
-#
-# summary(fit)
+set.seed(1)
+dat <- data.frame(y = plogis(rnorm(40)), x = rnorm(40))
+fit <- unitregTMB(
+  y ~ x, data = dat, family = unitgamma(model_for = "mean")
+)
+summary(fit)
 }
 }

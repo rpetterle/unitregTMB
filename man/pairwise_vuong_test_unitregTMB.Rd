@@ -2,48 +2,65 @@
 % Please edit documentation in R/vuong_test.R
 \name{pairwise_vuong_test.unitregTMB}
 \alias{pairwise_vuong_test.unitregTMB}
-\title{Pairwise Vuong Test for Multiple unitregTMB Models}
+\title{Pairwise Vuong Comparisons for unitregTMB Models}
 \usage{
 \method{pairwise_vuong_test}{unitregTMB}(
-  ...,
   lt = NULL,
-  p.adjust.method = stats::p.adjust.methods,
-  alternative = c("two.sided", "less", "greater")
+  p.adjust.method = "holm",
+  alternative = c("two.sided", "less", "greater"),
+  allow_conditional = FALSE,
+  allow_weighted = FALSE,
+  ...
 )
 }
 \arguments{
-\item{...}{\code{unitregTMB} objects separated by commas.}
+\item{lt}{Optional list of fitted \code{unitregTMB} objects. If supplied,
+objects in \code{...} are ignored.}
 
-\item{lt}{A list containing one or more \code{unitregTMB} objects.}
+\item{p.adjust.method}{Multiple-testing adjustment method passed to
+\code{\link[stats]{p.adjust}} through \code{pairwise.table}. The default is
+\code{"holm"}.}
 
-\item{p.adjust.method}{A character string specifying the method for multiple
-testing adjustment; almost always one of \code{p.adjust.methods}. Can be abbreviated.}
+\item{alternative}{Alternative hypothesis passed to
+\code{\link{vuong_test.unitregTMB}}.}
 
-\item{alternative}{Indicates the alternative hypothesis and must be one
-of \code{"two.sided"} (default), \code{"less"}, or \code{"greater"}. Can be abbreviated.}
+\item{allow_conditional}{Logical; passed to
+\code{\link{vuong_test.unitregTMB}}.}
+
+\item{allow_weighted}{Logical; passed to
+\code{\link{vuong_test.unitregTMB}}.}
+
+\item{...}{Fitted \code{unitregTMB} objects.}
 }
 \value{
-An object of class \code{"pairwise_htest"}
+An object of class \code{pairwise.htest}.
 }
 \description{
-Calculates pairwise comparisons between multiple fitted models, 
-performing the Vuong test for objects of class \code{unitregTMB}.
+Computes pairwise Vuong comparisons among two or more fitted
+\code{unitregTMB} models and adjusts the resulting p-values for multiple
+testing.
+}
+\details{
+The same limitations as for \code{\link{vuong_test.unitregTMB}} apply to
+every pair. In particular, the standard test is intended for non-nested
+models fitted to independent observations.
 }
 \examples{
 \donttest{
-sim_data <- sim_unitreg(n_id = 500, family = vasicek(), formula_mu = ~ x, 
-                        beta_mu = c(0.5, -0.5), beta_phi = 1.5,
-                        cov_config = list(x = list(dist = "normal")))
+data("wqi", package = "unitregTMB")
 
-fit_vas <- unitregTMB(Y ~ x, data = sim_data, family = vasicek())
-fit_bet <- unitregTMB(Y ~ x, data = sim_data, family = beta_fam())
-fit_kum <- unitregTMB(Y ~ x, data = sim_data, family = kumaraswamy())
+fit_beta <- unitregTMB(y ~ location,
+                       family = beta_fam(model_for = "mean"),
+                       data = wqi)
 
-ans <- pairwise_vuong_test(fit_vas, fit_bet, fit_kum)
-print(ans)
+fit_ug <- unitregTMB(y ~ location,
+                     family = unitgamma(model_for = "mean"),
+                     data = wqi)
+
+pairwise_vuong_test(fit_beta, fit_ug)
 }
 
 }
-\seealso{
-\code{\link{vuong_test}}, \code{\link[stats]{p.adjust}}
+\author{
+Ricardo Rasmussen Petterle
 }

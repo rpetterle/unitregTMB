@@ -57,9 +57,9 @@ curve(dbessel(x, mu = 0.6, phi = 5), add = TRUE, col = "red", lwd = 2)
 
 }
 \references{
-Barreto-Souza, W., Mayrink, V. D., & Simas, A. B. (2022). 
-Bessel regression model: a robust alternative to beta regression. 
-\emph{Journal of Applied Statistics}, \bold{49}(1), 1--20.
+Barreto-Souza, W., Mayrink, V. D., & Simas, A. B. (2021). 
+Bessel Regression and bbreg package to analyse bounded data.
+\emph{Australian & New Zealand Journal of Statistics}, \bold{63}(4), 685--706.
 }
 \author{
 Ricardo Rasmussen Petterle

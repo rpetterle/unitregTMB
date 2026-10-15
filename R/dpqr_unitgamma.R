@@ -23,12 +23,14 @@
 #' @param p vector of probabilities.
 #' @param n number of observations.
 #' @param mu mean or mode parameter, depending on the function used (0 < mu < 1).
-#' @param phi shape parameter (phi > 0).
+#' @param phi Positive shape parameter. In modal functions, the underlying Gamma shape is a = 1 + phi; in mean functions, the shape is a = phi.
 #' @param log,log.p logical; if TRUE, probabilities p are given as log(p).
 #' @param lower.tail logical; if TRUE (default), probabilities are \eqn{P[X \le x]}.
 #' 
 #' @details 
-#' The Unit-gamma distribution is obtained by the transformation \eqn{Y = \exp(-X)}, where \eqn{X \sim \Gamma(\text{shape}=\phi, \text{rate}=\beta)}.
+#' The Unit-gamma distribution is obtained by the transformation \eqn{Y = \exp(-X)}, where \eqn{X} is Gamma distributed.
+#' In the modal parameterization, \eqn{a=1+\phi} and \eqn{\beta=1+\phi/(-\log\mu)}, with \eqn{\phi>0}.
+#' In the mean parameterization, the shape remains \eqn{a=\phi}.
 #' 
 #' @examples
 #' # 1. Mean Parameterization

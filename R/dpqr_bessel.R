@@ -10,9 +10,9 @@
 #' @author Ricardo Rasmussen Petterle
 #'
 #' @references 
-#' Barreto-Souza, W., Mayrink, V. D., & Simas, A. B. (2022). 
-#' Bessel regression model: a robust alternative to beta regression. 
-#' \emph{Journal of Applied Statistics}, \bold{49}(1), 1--20.
+#' Barreto-Souza, W., Mayrink, V. D., & Simas, A. B. (2021). 
+#' Bessel Regression and bbreg package to analyse bounded data.
+#' \emph{Australian & New Zealand Journal of Statistics}, \bold{63}(4), 685--706.
 #'
 #' @param x,q vector of quantiles (0 < x, q < 1).
 #' @param p vector of probabilities.

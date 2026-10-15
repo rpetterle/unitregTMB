@@ -2,27 +2,34 @@
 % Please edit documentation in R/methods.R
 \name{profile.unitregTMB}
 \alias{profile.unitregTMB}
-\title{Compute Profile Likelihood for unitregTMB parameters}
+\title{Profile a Fixed Regression Coefficient}
 \usage{
 \method{profile}{unitregTMB}(fitted, parm, level.max = 0.99, trace = FALSE, ...)
 }
 \arguments{
-\item{fitted}{A fitted \code{unitregTMB} model.}
+\item{fitted}{A fitted \code{unitregTMB} object.}
 
-\item{parm}{The name of the parameter to profile (e.g., "mu.x1", "phi.(Intercept)").}
+\item{parm}{Name of one coefficient, using the form \code{"mu.x"},
+\code{"phi.x"}, \code{"p0.x"}, or \code{"p1.x"}.}
 
-\item{level.max}{Maximum confidence level to profile (default is 0.99).}
+\item{level.max}{Maximum confidence level passed to the profiling procedure.}
 
-\item{trace}{Logical; if TRUE, prints progress.}
+\item{trace}{Logical; print profiling progress.}
 
-\item{...}{Additional arguments passed to \code{TMB::tmbprofile}.}
+\item{...}{Additional arguments passed to \code{\link[TMB]{tmbprofile}}.}
 }
 \value{
-An object of class \code{profile.unitregTMB} (and \code{tmbprofile}), 
-containing the computed profile likelihood values.
+An object inheriting from \code{profile.unitregTMB} and
+  \code{tmbprofile}.
 }
 \description{
-Computes the profile likelihood for a specific parameter of a fitted \code{unitregTMB} model.
-This is computationally intensive but provides more accurate confidence intervals 
-for asymmetric parameters (like dispersion) than the Wald method.
+Computes a TMB profile likelihood for one fixed regression coefficient.
+}
+\examples{
+\dontrun{
+set.seed(1)
+dat <- data.frame(y = plogis(rnorm(40)), x = rnorm(40))
+fit <- unitregTMB(y ~ x, data = dat, family = unitgamma(model_for = "mean"))
+profile(fit, parm = "mu.x")
+}
 }

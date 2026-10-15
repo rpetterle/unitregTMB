@@ -2,48 +2,95 @@
 % Please edit documentation in R/predict.R
 \name{predict.unitregTMB}
 \alias{predict.unitregTMB}
-\title{Predict Method for unitregTMB Fits}
+\title{Predict from a Fitted unitregTMB Model}
 \usage{
 \method{predict}{unitregTMB}(
   object,
   newdata = NULL,
-  type = c("response", "link", "parameter"),
+  type = c("response", "link", "parameter", "mu", "phi", "p0", "p1"),
+  component = c("mu", "phi", "p0", "p1"),
   re.form = NULL,
+  allow.new.levels = FALSE,
+  offset = NULL,
   ...
 )
 }
 \arguments{
-\item{object}{A fitted \code{unitregTMB} model.}
+\item{object}{A fitted \code{unitregTMB} object.}
 
-\item{newdata}{Optional data frame for which to compute predictions. If omitted, the fitted values are used.}
+\item{newdata}{Optional data frame containing values at which predictions
+are required. If \code{NULL}, predictions are evaluated at the observations
+used to fit the model.}
 
-\item{type}{Character indicating the type of prediction. 
-\code{"response"} (default) returns predictions on the scale of the response variable.
-\code{"link"} returns predictions on the scale of the linear predictor for the location parameter (mu).
-\code{"parameter"} returns a data.frame with all predicted distribution parameters (\code{mu}, \code{phi}, \code{p0}, \code{p1}).}
+\item{type}{Prediction type. \code{"response"} returns the augmented
+conditional mean for mean-parameterized families and the modeled
+response-scale location parameter for modal and quantile families.
+\code{"parameter"} returns the four distributional parameters.
+\code{"mu"}, \code{"phi"}, \code{"p0"}, and \code{"p1"} return a single
+parameter. \code{"link"} returns the linear predictor for
+\code{component}.}
 
-\item{re.form}{(Currently ignored; included for compatibility).}
+\item{component}{Distributional component used when \code{type = "link"}:
+\code{"mu"}, \code{"phi"}, \code{"p0"}, or \code{"p1"}.}
 
-\item{...}{Further arguments passed to or from other methods.}
+\item{re.form}{\code{NULL} includes fitted ordinary and spatial latent
+effects. \code{NA} or \code{~0} excludes them and returns population-level
+predictions.}
+
+\item{allow.new.levels}{Logical. If \code{TRUE}, unseen grouping levels or
+spatial regions in \code{newdata} receive zero latent-effect contribution.}
+
+\item{offset}{Optional numeric offset for the \code{mu} predictor when
+\code{newdata} is supplied and the desired offset is not already specified
+through an \code{offset()} term in the model formula.}
+
+\item{...}{Additional arguments, currently unused.}
 }
 \value{
-A vector or data.frame of predictions.
+A numeric vector for \code{type = "response"}, \code{"link"},
+  \code{"mu"}, \code{"phi"}, \code{"p0"}, or \code{"p1"}. For
+  \code{type = "parameter"}, a data frame with columns \code{mu},
+  \code{phi}, \code{p0}, and \code{p1} is returned.
 }
 \description{
-Obtains predictions from a fitted \code{unitregTMB} object.
+Computes conditional or population-level predictions from a fitted
+\code{unitregTMB} model. Predictions are available for the \code{mu},
+\code{phi}, \code{p0}, and \code{p1} distributional predictors and support
+ordinary random effects and proper CAR spatial effects.
+}
+\details{
+For a mean-parameterized continuous distribution with zero/one augmentation,
+\code{type = "response"} returns
+\deqn{
+p_1 + p_c\mu,\qquad p_c = 1-p_0-p_1.
+}
+For modal and quantile parameterizations, \code{mu} is the modeled mode or
+quantile of the continuous component rather than its expectation.
+Consequently, \code{type = "response"} returns this modeled response-scale
+functional.
+
+With \code{re.form = NULL}, predictions at the original data use the fitted
+conditional modes of ordinary random effects and proper CAR effects. With
+\code{re.form = NA} or \code{~0}, all latent-effect contributions are set to
+zero.
 }
 \examples{
 \donttest{
-# Assuming 'da' is your dataset:
-# fit <- unitregTMB(Y ~ educ + refill, data = da, family = vasicek())
-#
-# # Predictions on the original dataset
-# head(predict(fit, type = "response"))
-# head(predict(fit, type = "parameter"))
-#
-# # Predictions on new data
-# new_data <- data.frame(educ = factor("HS+"), refill = factor("2"))
-# predict(fit, newdata = new_data, type = "response")
+data("wqi", package = "unitregTMB")
+
+fit <- unitregTMB(
+  y ~ location + quarter + (1 | id),
+  data = wqi,
+  family = unitgamma(model_for = "mean")
+)
+
+head(predict(fit, type = "mu"))
+head(predict(fit, type = "parameter"))
+head(predict(fit, type = "response", re.form = NA))
+head(predict(fit, type = "link", component = "phi"))
 }
 
+}
+\author{
+Ricardo Rasmussen Petterle
 }

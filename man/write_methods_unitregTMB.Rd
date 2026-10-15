@@ -2,38 +2,56 @@
 % Please edit documentation in R/write_methods.R
 \name{write_methods.unitregTMB}
 \alias{write_methods.unitregTMB}
-\title{Generate Methods Section Text for unitregTMB}
+\title{Generate Methods-Section Text for a unitregTMB Model}
 \usage{
 \method{write_methods}{unitregTMB}(object, language = c("en", "pt"), ...)
 }
 \arguments{
-\item{object}{A fitted \code{unitregTMB} model.}
+\item{object}{A fitted \code{unitregTMB} object.}
 
-\item{language}{Character string indicating the language for the generated text. 
-Options are \code{"en"} for English (default) or \code{"pt"} for Portuguese.}
+\item{language}{Output language: \code{"en"} for English or \code{"pt"} for
+Portuguese.}
 
-\item{...}{Additional arguments passed to methods.}
+\item{...}{Additional arguments, currently unused.}
 }
 \value{
-A list (invisibly) containing two elements: \code{text} (the generated 
-   methods paragraph) and \code{bibtex} (the citation string). The text is also 
-   printed to the console.
+Invisibly returns a list containing \code{text}, \code{bibtex},
+  \code{parameterization}, \code{random_effect_components}, and
+  \code{spatial_components}. The text and BibTeX entry are also printed.
 }
 \description{
-Generates a boilerplate "Methods" section text for academic papers, describing 
-the statistical model fitted with \code{unitregTMB}. It dynamically detects 
-the distribution family, link function, presence of zero/one inflation, 
-and random effects, writing the text in either English or Portuguese.
+Generates a concise Methods-section paragraph for an academic manuscript from
+a fitted \code{unitregTMB} model. The generated text reflects the fitted
+distribution, mean/mode/quantile parameterization, links, zero/one
+augmentation, ordinary random effects, proper CAR spatial effects, and
+estimation method.
+}
+\details{
+When both exact-zero and exact-one components are active, the generated text
+describes the joint three-category softmax parameterization used by
+\code{unitregTMB}. When only one boundary component is active, a binary
+logistic submodel is described.
+
+Models containing ordinary or spatial latent effects are described as being
+estimated by maximum marginal likelihood using the Laplace approximation.
+Models without latent effects are described as maximum-likelihood fits.
+
+The returned text is intended as an editable starting point for a manuscript,
+not as a substitute for reporting the complete model specification.
 }
 \examples{
 \donttest{
-# Assuming 'fit' is a fitted unitregTMB model:
-# Generate text in English
-# write_methods(fit, language = "en")
+data("wqi", package = "unitregTMB")
 
-# Generate text in Portuguese and save to an object
-# methods_output <- write_methods(fit, language = "pt")
-# methods_output$text
+fit <- unitregTMB(y ~ location + quarter + (1 | id),
+                  family = unitgamma(model_for = "mean"),
+                  data = wqi)
+
+out <- write_methods(fit, language = "en")
+out$text
 }
 
+}
+\author{
+Ricardo Rasmussen Petterle
 }

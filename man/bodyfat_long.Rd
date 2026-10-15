@@ -13,7 +13,7 @@ A \code{data.frame} with 1490 observations and 7 variables:
   \item{ipaq}{Factor indicating physical activity level.}
   \item{bmi}{Body Mass Index.}
   \item{regions}{Factor indicating the anatomical region of the measurement (\code{Arms}, \code{Legs}, \code{Trunk}, \code{Android}, \code{Gynoid}).}
-  \item{y}{Proportion of body fat in the specified region (0 to 1).}
+  \item{y}{Body fat proportion in the specified region.}
 }
 }
 \source{
@@ -23,26 +23,27 @@ A \code{data.frame} with 1490 observations and 7 variables:
 bodyfat_long
 }
 \description{
-A longitudinal (stacked) version of the \code{bodyfat} dataset containing 
-1490 observations (5 regions x 298 individuals). This format is specifically 
-designed to be used with mixed-effects models in \code{unitregTMB}, allowing 
-the use of \code{(1 | id)} to account for intra-subject correlation across 
-different anatomical regions.
+A long-format version of the \code{bodyfat} dataset containing 1490
+observations (5 regions x 298 individuals). This representation is designed
+for clustered and mixed-effects analyses in \code{unitregTMB}, allowing
+\code{(1 | id)} to account for within-individual dependence across anatomical
+regions.
 }
 \examples{
 data("bodyfat_long", package = "unitregTMB")
 head(bodyfat_long)
 \donttest{
-# Example: Fitting a mixed-effects Vasicek model
-# fit <- unitregTMB(y ~ regions + gender + (1 | id), 
-#                   data = bodyfat_long, 
-#                   family = vasicek())
+fit <- unitregTMB(
+  y ~ regions + gender + (1 | id),
+  data = bodyfat_long,
+  family = vasicek(model_for = "mean")
+)
 }
 }
 \references{
-Petterle, R. R., Laureano, H. A., da Silva, G. P., & Bonat, W. H. (2021). 
-Multivariate generalized linear mixed models for continuous bounded outcomes: 
-Analyzing the body fat percentage data. 
+Petterle, R. R., Laureano, H. A., da Silva, G. P., & Bonat, W. H. (2021).
+Multivariate generalized linear mixed models for continuous bounded outcomes:
+Analyzing the body fat percentage data.
 \emph{Statistical Methods in Medical Research}, 30(12), 2619-2633.
 }
 \keyword{datasets}

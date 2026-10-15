@@ -2,26 +2,30 @@
 % Please edit documentation in R/methods.R
 \name{AIC.unitregTMB}
 \alias{AIC.unitregTMB}
-\title{Extract Akaike Information Criterion}
+\title{Akaike Information Criterion}
 \usage{
 \method{AIC}{unitregTMB}(object, ..., k = 2)
 }
 \arguments{
-\item{object}{An object of class \code{unitregTMB}.}
+\item{object}{A fitted \code{unitregTMB} object.}
 
-\item{...}{Further arguments passed to or from other methods.}
+\item{...}{Additional arguments passed to \code{\link[stats]{AIC}}.}
 
-\item{k}{Numeric, the penalty per parameter to be used; the default \code{k = 2} 
-is the classical AIC.}
+\item{k}{Penalty per parameter; the default \code{2} gives the usual AIC.}
 }
 \value{
-A numeric value representing the AIC.
+A numeric AIC value.
 }
 \description{
-Extracts the Akaike Information Criterion (AIC) of a fitted \code{unitregTMB} model.
+Computes the AIC for a fitted \code{unitregTMB} model.
 }
 \examples{
 \donttest{
-# AIC(fit)
+set.seed(1)
+dat <- data.frame(y = plogis(rnorm(40)), x = rnorm(40))
+fit <- unitregTMB(
+  y ~ x, data = dat, family = unitgamma(model_for = "mean")
+)
+AIC(fit)
 }
 }

@@ -2,37 +2,80 @@
 % Please edit documentation in R/residuals.R
 \name{residuals.unitregTMB}
 \alias{residuals.unitregTMB}
-\title{Extract Model Residuals for unitregTMB}
+\title{Residuals for unitregTMB Models}
 \usage{
-\method{residuals}{unitregTMB}(object, type = c("quantile", "cox-snell", "response"), ...)
+\method{residuals}{unitregTMB}(
+  object,
+  type = c("quantile", "cox-snell", "response"),
+  re.form = NULL,
+  seed = NULL,
+  ...
+)
 }
 \arguments{
-\item{object}{A fitted \code{unitregTMB} model.}
+\item{object}{A fitted \code{unitregTMB} object.}
 
-\item{type}{The type of residuals which should be returned. 
-Options are \code{"quantile"} (default), \code{"cox-snell"}, or \code{"response"}.}
+\item{type}{Residual type: \code{"quantile"}, \code{"cox-snell"}, or
+\code{"response"}.}
 
-\item{...}{Additional arguments (currently unused).}
+\item{re.form}{\code{NULL} computes conditional residuals using fitted latent
+effects. \code{NA} or \code{~0} computes population-level residuals.}
+
+\item{seed}{Optional finite numeric seed used for Dunn-Smyth randomization at
+exact zero and one observations.}
+
+\item{...}{Additional arguments passed to \code{predict.unitregTMB}.}
 }
 \value{
-A numeric vector representing the chosen residuals.
+A numeric vector of residuals with the same length as the response
+  used to fit the model.
 }
 \description{
-Computes randomized quantile or Cox-Snell residuals for continuous bounded 
-models, accounting for potential zero and one inflation (Dunn & Smyth, 1996).
+Computes randomized quantile, Cox-Snell, or response-scale residuals for
+fitted \code{unitregTMB} models. Zero/one augmentation, ordinary random
+effects, and proper CAR spatial effects are handled through the current
+prediction layer.
+}
+\details{
+Randomized quantile residuals use the probability integral transform of the
+complete augmented distribution. For an interior observation,
+\deqn{
+F_Y(y)=p_0+(1-p_0-p_1)F_c(y),
+}
+where \eqn{F_c} is the CDF of the continuous component. Exact zeros are
+randomized uniformly over \eqn{[0,p_0]}, and exact ones over
+\eqn{[1-p_1,1]}.
+
+The continuous CDF is evaluated only for observations strictly inside
+\eqn{(0,1)}. This avoids evaluating continuous-family transformations at
+structural boundary observations.
+
+For mean-parameterized families, \code{type = "response"} is the observed
+response minus the fitted augmented conditional mean. For modal and quantile
+parameterizations it is the observed response minus the modeled
+response-scale mode or quantile, respectively, and is therefore not a
+mean residual.
+
+Machine-level guards are applied only when transforming CDF values to
+Gaussian or Cox-Snell residuals, preventing infinite transformed residuals
+without altering the observed response.
 }
 \examples{
 \donttest{
-# Assuming 'da' is your dataset with a zero-inflated response:
-# fit <- unitregTMB(Y ~ educ, p0.formula = ~ 1, data = da, family = vasicek())
-# 
-# # Extract randomized quantile residuals (default)
-# res_q <- residuals(fit)
-# head(res_q)
-#
-# # Extract response residuals (Observed - Expected)
-# res_r <- residuals(fit, type = "response")
-# head(res_r)
+data("wqi", package = "unitregTMB")
+
+fit <- unitregTMB(
+  y ~ location + quarter,
+  data = wqi,
+  family = unitgamma(model_for = "mean")
+)
+
+head(residuals(fit, type = "quantile", seed = 123))
+head(residuals(fit, type = "cox-snell", seed = 123))
+head(residuals(fit, type = "response"))
 }
 
+}
+\author{
+Ricardo Rasmussen Petterle
 }

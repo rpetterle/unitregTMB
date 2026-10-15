@@ -2,37 +2,57 @@
 % Please edit documentation in R/methods.R
 \name{gof_tab.unitregTMB}
 \alias{gof_tab.unitregTMB}
-\alias{print.gof_tab.unitregTMB}
-\title{Goodness-of-Fit Table for unitregTMB Models}
+\title{Compare Goodness-of-Fit Measures from unitregTMB Models}
 \usage{
 \method{gof_tab}{unitregTMB}(object, ..., digits = 2)
-
-\method{print}{gof_tab.unitregTMB}(x, digits = NULL, ...)
 }
 \arguments{
-\item{object}{An object of class \code{unitregTMB}.}
+\item{object}{A fitted \code{unitregTMB} object.}
 
-\item{...}{Additional \code{unitregTMB} model objects for comparison.}
+\item{...}{Additional fitted \code{unitregTMB} objects.}
 
-\item{digits}{Number of significant digits to be used in the output.}
-
-\item{x}{An object of class \code{gof_tab.unitregTMB}.}
+\item{digits}{Non-negative integer giving the number of decimal places
+used when printing the goodness-of-fit measures.}
 }
 \value{
-An object of class \code{gof_tab.unitregTMB} containing a list of computed metrics for each model.
+An object of class \code{gof_tab.unitregTMB}. It is a list with
+  one element per fitted model, containing the model label,
+  log-likelihood, AIC, and BIC.
 }
 \description{
-Computes and compares log-likelihood, AIC, and BIC for one or more fitted \code{unitregTMB} models.
+Compares log-likelihood, Akaike information criterion (AIC), and Bayesian
+information criterion (BIC) across one or more fitted
+\code{unitregTMB} models.
+}
+\details{
+Model labels are automatically constructed from the fitted family and
+parameterization. Mean and modal models are displayed, for example, as
+\code{"Beta (mean)"} and \code{"Beta (mode)"}.
+
+For quantile regression, the quantile level is displayed directly in the
+model label. For example, a Kumaraswamy median regression is shown as
+\code{"Kumaraswamy (tau = 0.5)"}.
+
+When many models are compared, the print method automatically divides the
+table into blocks according to the current console width, as determined by
+\code{getOption("width")}.
 }
 \examples{
 \donttest{
-# Assuming fit1 and fit2 are two fitted unitregTMB models:
-# fit1 <- unitregTMB(arms ~ age + bmi + gender + ipaq, 
-                     family = vasicek(model_for = "quantile", tau = 0.75), 
-                     data = bodyfat)
-# fit2 <- unitregTMB(arms ~ age + bmi + gender + ipaq, 
-                     family = kumaraswamy(model_for = "quantile", tau = 0.75), 
-                     data = bodyfat)
-# gof_tab(fit1, fit2)
+data("wqi", package = "unitregTMB")
+
+fit_beta <- unitregTMB(y ~ location + quarter + (1 | id),
+                       family = beta_fam(model_for = "mean"),
+                       data = wqi)
+
+fit_ug <- unitregTMB(y ~ location + quarter + (1 | id),
+                     family = unitgamma(model_for = "mean"),
+                     data = wqi)
+
+gof_tab(fit_beta, fit_ug)
 }
+
+}
+\author{
+Ricardo Rasmussen Petterle
 }

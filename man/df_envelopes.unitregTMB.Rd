@@ -2,7 +2,7 @@
 % Please edit documentation in R/df_envelopes.R
 \name{df_envelopes.unitregTMB}
 \alias{df_envelopes.unitregTMB}
-\title{Extract Envelope Data into a Data Frame for unitregTMB Models}
+\title{Extract Simulated-Envelope Data from unitregTMB Models}
 \usage{
 \method{df_envelopes}{unitregTMB}(
   object,
@@ -15,47 +15,64 @@
 )
 }
 \arguments{
-\item{object}{An object of class \code{unitregTMB}.}
+\item{object}{A fitted object of class \code{unitregTMB}.}
 
-\item{...}{Additional objects of class \code{unitregTMB} to be compared.}
+\item{...}{Additional fitted \code{unitregTMB} objects.}
 
-\item{nsim}{Number of simulations used to compute the envelope. Default is 50.}
+\item{nsim}{Positive integer giving the number of bootstrap simulations used
+to construct each envelope.}
 
-\item{halfnormal}{logical. If \code{TRUE} (default), a half-normal plot is produced. 
-If \code{FALSE}, a normal plot is produced. Ignored if \code{resid.type = "cox-snell"}.}
+\item{halfnormal}{Logical. If \code{TRUE}, a half-normal envelope is
+constructed.}
 
-\item{resid.type}{Type of residuals to be used: \code{"quantile"} (default) or \code{"cox-snell"}.}
+\item{resid.type}{Character string specifying the residual type. Available
+choices are \code{"quantile"} and \code{"cox-snell"}.}
 
-\item{ncpus}{Number of cores to use for parallel computing. Default is 1.}
+\item{ncpus}{Positive integer giving the number of outer bootstrap workers.}
 
-\item{show.progress}{logical. Should the progress bar and messages be displayed? Default is \code{TRUE}.}
+\item{show.progress}{Logical. If \code{TRUE}, progress information is
+displayed.}
 }
 \value{
-A \code{data.frame} containing the simulated envelope coordinates 
-        (\code{Theoretical}, \code{Observed}, \code{Lower}, \code{Median}, \code{Upper}) 
-        for all provided models. A factor column \code{Model} is included to distinguish 
-        the source of each set of residuals, properly ordered.
+A \code{data.frame} containing the envelope coordinates returned by
+  \code{regcore}, including \code{Theoretical}, \code{Observed},
+  \code{Lower}, \code{Median}, \code{Upper}, and a factor \code{Model}
+  identifying the fitted model.
 }
 \description{
-Method for the \code{regcore::df_envelopes} generic. Extracts the coordinates of 
-simulated envelopes from one or more fitted \code{unitregTMB} models. The result 
-is a tidy data frame in long format, highly optimized for creating faceted 
-graphics using \code{ggplot2}.
+Computes simulated residual envelopes for one or more fitted
+\code{unitregTMB} models through the \code{regcore} envelope machinery and
+combines the resulting coordinates in long format for subsequent plotting or
+comparison.
+}
+\details{
+Model labels include the distribution name and, when available, the
+mean/mode/quantile parameterization, quantile level, zero/one augmentation,
+ordinary random-effects structure, and spatial structure. The actual
+simulation and envelope construction are delegated to
+\code{regcore::plot_envelope}.
 }
 \examples{
 \donttest{
-# Assuming 'da' is your dataset
-# fit_vas <- unitregTMB(Y ~ x, family = vasicek(), data = da)
-# fit_bet <- unitregTMB(Y ~ x, family = beta_fam(), data = da)
+data("wqi", package = "unitregTMB")
 
-# Extract tidy data frame for ggplot2
-# df_plot <- df_envelopes(fit_vas, fit_bet, nsim = 19)
+fit <- unitregTMB(
+  y ~ location,
+  data = wqi,
+  family = unitgamma(model_for = "mean"),
+)
 
-# Example ggplot2 code:
-# library(ggplot2)
-# ggplot(df_plot, aes(x = Theoretical)) +
-#   geom_ribbon(aes(ymin = Lower, ymax = Upper), fill = "grey85", alpha = 0.5) +
-#   geom_point(aes(y = Observed)) +
-#   facet_wrap(~ Model)
+env <- regcore::df_envelopes(
+  fit,
+  nsim = 5,
+  ncpus = 1,
+  show.progress = FALSE
+)
+
+head(env)
 }
+
+}
+\author{
+Ricardo Rasmussen Petterle
 }

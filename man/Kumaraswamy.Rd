@@ -33,7 +33,7 @@ rkum_quantile(n, mu, phi, tau = 0.5)
 
 \item{mu}{location parameter (Mode or Quantile), depending on the function (0 < mu < 1).}
 
-\item{phi}{shape parameter 'a' (phi > 0, note that phi > 1 for Mode parametrization).}
+\item{phi}{Positive shape parameter. For modal regression, the standard Kumaraswamy shape is a = 1 + phi (phi > 0); for quantile regression a = phi (phi > 0).}
 
 \item{log, log.p}{logical; if TRUE, probabilities p are given as log(p).}
 
@@ -52,6 +52,9 @@ Kumaraswamy distribution parameterized by the Mode or a Quantile.
 \details{
 The Kumaraswamy distribution has PDF:
 \deqn{f(x) = a b x^{a-1} (1 - x^a)^{b-1}}
+In the mode parameterization, \eqn{a = 1 + \phi} and
+\eqn{b = [1 + \phi\mu^{-(1+\phi)}]/(1+\phi)}, where \eqn{\phi>0}.
+This is a shifted reparameterization of the previous convention a = phi_old > 1.
 }
 \references{
 Kumaraswamy, P. (1980). A generalized probability density function for double-bounded random processes. 

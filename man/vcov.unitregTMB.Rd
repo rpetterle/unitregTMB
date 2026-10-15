@@ -2,23 +2,30 @@
 % Please edit documentation in R/methods.R
 \name{vcov.unitregTMB}
 \alias{vcov.unitregTMB}
-\title{Extract Variance-Covariance Matrix}
+\title{Extract the Fixed-Effect Variance-Covariance Matrix}
 \usage{
 \method{vcov}{unitregTMB}(object, ...)
 }
 \arguments{
-\item{object}{An object of class \code{unitregTMB}.}
+\item{object}{A fitted \code{unitregTMB} object.}
 
-\item{...}{Further arguments passed to or from other methods.}
+\item{...}{Additional arguments, currently unused.}
 }
 \value{
-A numeric matrix representing the estimated covariances between the parameter estimates.
+A covariance matrix with component-prefixed coefficient names.
 }
 \description{
-Extracts the variance-covariance matrix of the main parameters of a fitted \code{unitregTMB} model.
+Extracts the covariance matrix for fixed regression coefficients only.
+Ordinary random-effect covariance parameters and CAR hyperparameters are
+excluded.
 }
 \examples{
 \donttest{
-# vcov(fit)
+set.seed(1)
+dat <- data.frame(y = plogis(rnorm(40)), x = rnorm(40))
+fit <- unitregTMB(
+  y ~ x, data = dat, family = unitgamma(model_for = "mean")
+)
+vcov(fit)
 }
 }

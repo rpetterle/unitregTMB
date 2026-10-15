@@ -13,6 +13,7 @@ unitregTMB.control(
   optimizer = c("nlminb", "optim"),
   optim.method = "BFGS",
   optim.control = list(),
+  parallel = list(n = 1L, autopar = FALSE),
   ...
 )
 }
@@ -32,6 +33,8 @@ unitregTMB.control(
 \item{optim.method}{The method to be used if \code{optimizer = "optim"}. Default is \code{"BFGS"}.}
 
 \item{optim.control}{A list of additional control parameters to be passed to the chosen optimizer.}
+
+\item{parallel}{Retained for compatibility. The validated serial build requires \code{list(n = 1L, autopar = FALSE)}; requests for multiple threads or automatic parallelization produce an error.}
 
 \item{...}{Additional arguments.}
 }

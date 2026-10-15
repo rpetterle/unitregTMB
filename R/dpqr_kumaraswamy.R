@@ -23,7 +23,7 @@
 #' @param p vector of probabilities.
 #' @param n number of observations.
 #' @param mu location parameter (Mode or Quantile), depending on the function (0 < mu < 1).
-#' @param phi shape parameter 'a' (phi > 0, note that phi > 1 for Mode parametrization).
+#' @param phi Positive shape parameter. For modal regression, the standard Kumaraswamy shape is a = 1 + phi (phi > 0); for quantile regression a = phi (phi > 0).
 #' @param tau the quantile level to be modeled (only for quantile parametrization).
 #' @param log,log.p logical; if TRUE, probabilities p are given as log(p).
 #' @param lower.tail logical; if TRUE (default), probabilities are \eqn{P[X \le x]}.
@@ -31,34 +31,37 @@
 #' @details 
 #' The Kumaraswamy distribution has PDF:
 #' \deqn{f(x) = a b x^{a-1} (1 - x^a)^{b-1}}
+#' In the mode parameterization, \eqn{a = 1 + \phi} and
+#' \eqn{b = [1 + \phi\mu^{-(1+\phi)}]/(1+\phi)}, where \eqn{\phi>0}.
+#' This is a shifted reparameterization of the previous convention a = phi_old > 1.
 #' 
 NULL
 
 #' @rdname Kumaraswamy
 #' @export
 dkum_mode <- function(x, mu, phi, log = FALSE) {
-  stopifnot(mu > 0, mu < 1, phi > 1)
+  stopifnot(mu > 0, mu < 1, phi > 0)
   cpp_dkum_mode(x, mu, phi, log[1L])
 }
 
 #' @rdname Kumaraswamy
 #' @export
 pkum_mode <- function(q, mu, phi, lower.tail = TRUE, log.p = FALSE) {
-  stopifnot(mu > 0, mu < 1, phi > 1)
+  stopifnot(mu > 0, mu < 1, phi > 0)
   cpp_pkum_mode(q, mu, phi, lower.tail[1L], log.p[1L])
 }
 
 #' @rdname Kumaraswamy
 #' @export
 qkum_mode <- function(p, mu, phi, lower.tail = TRUE, log.p = FALSE) {
-  stopifnot(mu > 0, mu < 1, phi > 1)
+  stopifnot(mu > 0, mu < 1, phi > 0)
   cpp_qkum_mode(p, mu, phi, lower.tail[1L], log.p[1L])
 }
 
 #' @rdname Kumaraswamy
 #' @export
 rkum_mode <- function(n, mu, phi) {
-  stopifnot(n > 0, mu > 0, mu < 1, phi > 1)
+  stopifnot(n > 0, mu > 0, mu < 1, phi > 0)
   cpp_rkum_mode(n, mu, phi)
 }
 

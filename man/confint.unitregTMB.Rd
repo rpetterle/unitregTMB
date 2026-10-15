@@ -2,29 +2,37 @@
 % Please edit documentation in R/methods.R
 \name{confint.unitregTMB}
 \alias{confint.unitregTMB}
-\title{Calculate Confidence Intervals for Model Parameters}
+\title{Wald Confidence Intervals}
 \usage{
 \method{confint}{unitregTMB}(object, parm, level = 0.95, ...)
 }
 \arguments{
-\item{object}{A fitted \code{unitregTMB} model.}
+\item{object}{A fitted \code{unitregTMB} object.}
 
-\item{parm}{A specification of which parameters are to be given confidence intervals, 
-either a vector of numbers or a vector of names. If missing, all parameters are considered.}
+\item{parm}{Optional numeric or character vector selecting coefficients.
+Character names use the form \code{"mu.x"}, \code{"phi.x"},
+\code{"p0.x"}, or \code{"p1.x"}.}
 
-\item{level}{The confidence level required (default is 0.95).}
+\item{level}{Confidence level.}
 
-\item{...}{Additional arguments (currently ignored).}
+\item{...}{Additional arguments, currently unused.}
 }
 \value{
-A matrix with columns giving lower and upper confidence limits for each parameter.
+A matrix with lower and upper confidence limits.
 }
 \description{
-Computes confidence intervals for one or more parameters in a fitted \code{unitregTMB} model
-using the Wald method (based on standard errors).
+Computes Wald confidence intervals for fixed regression coefficients in the
+active \code{mu}, \code{phi}, \code{p0}, and \code{p1} predictors. Random-
+effect covariance parameters and CAR hyperparameters are excluded.
 }
 \examples{
 \donttest{
-# confint(fit, level = 0.95)
+set.seed(1)
+dat <- data.frame(y = plogis(rnorm(40)), x = rnorm(40))
+fit <- unitregTMB(
+  y ~ x, data = dat, family = unitgamma(model_for = "mean")
+)
+confint(fit)
+confint(fit, parm = "mu.x")
 }
 }

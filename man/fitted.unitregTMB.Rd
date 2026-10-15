@@ -2,35 +2,54 @@
 % Please edit documentation in R/methods.R
 \name{fitted.unitregTMB}
 \alias{fitted.unitregTMB}
-\title{Extract Model Fitted Values for unitregTMB}
+\title{Extract Fitted Values}
 \usage{
 \method{fitted}{unitregTMB}(object, type = c("response", "mu", "phi", "p0", "p1"), ...)
 }
 \arguments{
-\item{object}{An object of class \code{unitregTMB}.}
+\item{object}{A fitted \code{unitregTMB} object.}
 
-\item{type}{The type of prediction required. 
-\itemize{
-  \item \code{"response"}: The expected mean value of the response variable (default).
-  \item \code{"mu"}: The location parameter of the continuous component.
-  \item \code{"phi"}: The precision parameter.
-  \item \code{"p0"}: The probability of zero inflation.
-  \item \code{"p1"}: The probability of one inflation.
-}}
+\item{type}{Quantity to return: \code{"response"}, \code{"mu"},
+\code{"phi"}, \code{"p0"}, or \code{"p1"}.}
 
-\item{...}{Additional arguments (currently unused).}
+\item{...}{Additional arguments, currently unused.}
 }
 \value{
-A numeric vector of fitted values corresponding to the specified \code{type}.
+A numeric vector of fitted values.
 }
 \description{
-Computes the fitted values for a \code{unitregTMB} model. This method reconstructs the linear
-predictors using the original design matrices stored in the TMB object environment
-and the optimized parameters (including random effects and offsets).
+Reconstructs fitted values from the optimized fixed effects, conditional
+modes of ordinary random effects, and proper CAR effects in all active
+distributional predictors.
+}
+\details{
+The interpretation of \code{type = "response"} depends on the
+parameterization of the continuous component.
+
+For mean-parameterized families, the fitted response is
+\deqn{
+  p_1 + (1 - p_0 - p_1)\mu,
+}
+which is the unconditional conditional mean of the augmented response.
+
+For modal and quantile parameterizations, \code{mu} represents the modeled
+mode or quantile of the continuous component rather than its mean.
+Consequently, \code{type = "response"} returns the modeled response-scale
+\code{mu} parameter instead of interpreting
+\eqn{p_1 + (1-p_0-p_1)\mu} as an expectation.
+
+The options \code{"mu"}, \code{"phi"}, \code{"p0"}, and \code{"p1"}
+always return the corresponding fitted distributional parameter.
 }
 \examples{
 \donttest{
-# fitted(fit, type = "response")
-# fitted(fit, type = "phi")
+set.seed(1)
+dat <- data.frame(y = plogis(rnorm(40)), x = rnorm(40))
+fit <- unitregTMB(
+  y ~ x, data = dat, family = unitgamma(model_for = "mean")
+)
+head(fitted(fit, type = "mu"))
+head(fitted(fit, type = "phi"))
+head(fitted(fit, type = "response"))
 }
 }

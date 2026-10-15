@@ -29,7 +29,6 @@ NumericVector cpp_dbeta_mode(const NumericVector x,
     double cur_mu  = mu[i % nmu];
     double cur_phi = phi[i % nphi];
     
-    // Validation: phi must be > 0 for mode to be defined in (0,1)
     if (cur_mu <= 0.0 || cur_mu >= 1.0 || cur_phi <= 0.0) {
       out[i] = R_NaN;
       continue;

@@ -17,44 +17,62 @@
 )
 }
 \arguments{
-\item{object}{A fitted unitregTMB object.}
+\item{object}{A fitted \code{unitregTMB} object.}
 
-\item{mode}{Character; "symbolic" (default) for theoretical equations with greek letters, 
-or "numeric" for fitted equations with estimated coefficients.}
+\item{mode}{Character string specifying \code{"symbolic"} or
+\code{"numeric"} output.}
 
-\item{component}{Character; specifies which submodel to extract: "mu", "phi", "p0", "p1", or "all".}
+\item{component}{Character string specifying \code{"mu"}, \code{"phi"},
+\code{"p0"}, \code{"p1"}, or \code{"all"}.}
 
-\item{link_style}{Character; "name" (default) to print the link function as text (e.g., probit, cauchit), 
-or "inverse" to print the mathematical inverse function (e.g., \\Phi^{-1}).}
+\item{link_style}{Character string. \code{"name"} prints the link name;
+\code{"inverse"} prints its mathematical expression.}
 
-\item{grouping_var}{Character; a substring matching the name of the repeated measures variable 
-(e.g., "tooth"). This variable will receive the compound index {ij}. Defaults to NULL.}
+\item{grouping_var}{Optional character string identifying the grouping
+variable used to display compound \eqn{ij} indexing for predictors with
+ordinary random effects.}
 
-\item{digits}{Integer; number of decimal places for numeric mode.}
+\item{digits}{Non-negative integer giving the number of decimal places used
+in numeric mode.}
 
-\item{custom_labels}{Named character vector; pairs of old variable names and desired new labels.}
+\item{custom_labels}{Optional named character vector mapping model-matrix
+column names to custom LaTeX labels.}
 
-\item{index_labels}{Logical; if TRUE (default), appends the domain bounds (e.g., for i = 1,...,N).}
+\item{index_labels}{Logical; if \code{TRUE}, append observation or cluster
+indexing information.}
 
-\item{...}{Additional arguments passed to methods.}
+\item{...}{Additional arguments, currently unused.}
 }
 \value{
-A character string (invisibly) containing the LaTeX code for the equations. 
-   The code is also printed to the console.
+A character string containing the LaTeX \code{align} environment,
+  returned invisibly after being printed to the console.
 }
 \description{
-Generates formatted LaTeX equations for fitted unitregTMB models, 
-supporting both symbolic and numeric representation. It automatically identifies 
-random effects and assigns proper indices to longitudinal/repeated measures.
+Generates LaTeX equations for fitted \code{unitregTMB} models in symbolic or
+numeric form. Equations can be extracted for the location, dispersion/shape,
+zero-inflation, and one-inflation predictors, including ordinary random
+effects and proper CAR spatial effects when present.
+}
+\details{
+For models containing both zero and one augmentation, the boundary
+predictors are represented using the multinomial-logit parameterization
+employed by the TMB likelihood, with the continuous component as the
+baseline category. Numeric equations use the fitted fixed-effect
+coefficients stored in the fitted model object. Random and spatial effects
+are represented symbolically through their conditional modes.
 }
 \examples{
 \donttest{
-# Assuming 'fit' is a fitted unitregTMB model:
-# Extract the theoretical symbolic equation for the mean (mu)
-# extract_equations(fit, mode = "symbolic", component = "mu")
-
-# Extract the numeric fitted equation for all components with custom labels
-# eq <- extract_equations(fit, mode = "numeric", component = "all", 
-#                         custom_labels = c("educHS+" = "HighSchool"))
+set.seed(1)
+dat <- data.frame(y = plogis(rnorm(40)), x = rnorm(40))
+fit <- unitregTMB(
+  y ~ x,
+  phi.formula = ~ x,
+  data = dat,
+  family = unitgamma(model_for = "mean"),
+)
+regcore::extract_equations(fit, mode = "symbolic", component = "all")
+regcore::extract_equations(fit, mode = "numeric", component = "mu")
 }
+
 }

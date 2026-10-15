@@ -30,83 +30,108 @@ plot_coef(
 )
 }
 \arguments{
-\item{...}{One or more fitted model objects of class \code{unitregTMB}, or a list of such objects.}
+\item{...}{One or more fitted objects of class \code{unitregTMB}, or a
+single list containing such objects.}
 
-\item{conf_level}{Numeric. The confidence level for the error bars. Default is \code{0.95}.}
+\item{conf_level}{Numeric scalar in \eqn{(0,1)} giving the confidence level
+for the Wald intervals.}
 
-\item{intercept}{Logical. Should the intercept(s) be included in the plot? Default is \code{TRUE}.}
+\item{intercept}{Logical; include intercept coefficients.}
 
-\item{component}{Character vector specifying which model components to plot. 
-Options are \code{"all"}, \code{"mu"} (default), \code{"phi"}, \code{"p0"}, or \code{"p1"}.}
+\item{component}{Character vector selecting \code{"mu"}, \code{"phi"},
+\code{"p0"}, or \code{"p1"}. Use \code{"all"} to include all active
+components.}
 
-\item{ncol}{Integer. Number of columns for the faceted layout when \code{facet = TRUE}. Default is \code{2}.}
+\item{ncol}{Positive integer giving the number of columns when
+\code{facet = TRUE}.}
 
-\item{labels}{Character vector. Custom labels for the y-axis (coefficient names). Default is \code{NULL}.}
+\item{labels}{Optional character vector used to relabel coefficients. A
+named vector may be used to map coefficient names to labels.}
 
-\item{parse_labels}{Logical. If \code{TRUE}, parses \code{labels} as mathematical expressions. Default is \code{FALSE}.}
+\item{parse_labels}{Logical; parse custom labels as plotmath expressions.}
 
-\item{math_labels}{Logical. If \code{TRUE}, automatically generates mathematical expressions for the coefficients 
-(e.g., beta^phi). Default is \code{FALSE}.}
+\item{math_labels}{Logical; automatically use mathematical labels
+\eqn{\beta}, \eqn{\psi}, \eqn{\gamma}, and \eqn{\delta} for coefficients
+in the \code{mu}, \code{phi}, \code{p0}, and \code{p1} predictors,
+respectively.}
 
-\item{facet}{Logical. If \code{TRUE} (default), displays models in separate panels using \code{patchwork} and \code{ggh4x}. 
-If \code{FALSE}, overlays models in a single plot using position dodge.}
+\item{facet}{Logical; if \code{TRUE}, models are shown in separate panels.
+If \code{FALSE}, models are overlaid in one panel.}
 
-\item{palette}{Character string specifying the color palette. Options include \code{"default"}, 
-\code{"grey"}, \code{"viridis"}, \code{"brewer"}, or a \code{ggsci} palette (e.g., \code{"ggsci::npg"}).}
+\item{palette}{Color specification used when \code{facet = FALSE}. It may be
+\code{"default"}, \code{"grey"}, \code{"viridis"}, \code{"brewer"}, a
+character vector of colors, or a \code{ggsci} scale specified as
+\code{"ggsci::npg"}, for example.}
 
-\item{point_size}{Numeric. Size of the point estimates. Default is \code{2}.}
+\item{point_size}{Numeric point size.}
 
-\item{strip_text_size}{Numeric. Font size for the facet strip labels. Default is \code{11}.}
+\item{strip_text_size}{Numeric font size for facet strip labels.}
 
-\item{axis_title_size}{Numeric. Font size for the axis titles. Default is \code{11}.}
+\item{axis_title_size}{Numeric font size for axis titles.}
 
-\item{axis_text_x_size}{Numeric. Font size for the x-axis text. Default is \code{10}.}
+\item{axis_text_x_size}{Numeric font size for x-axis labels.}
 
-\item{axis_text_y_size}{Numeric. Font size for the y-axis text. Default is \code{12}.}
+\item{axis_text_y_size}{Numeric font size for y-axis labels.}
 
-\item{vline_color}{Character. Color for the vertical zero-reference line. Default is \code{"gray40"}.}
+\item{vline_color}{Color of the zero-reference line.}
 
-\item{point_color}{Character. Color for the points when \code{facet = TRUE}. Default is \code{"#0072B2"}.}
+\item{point_color}{Point color used when \code{facet = TRUE}.}
 
-\item{errorbar_color}{Character. Color for the error bars when \code{facet = TRUE}. Default is \code{"gray40"}.}
+\item{errorbar_color}{Confidence-interval color used when
+\code{facet = TRUE}.}
 
-\item{title}{Character. Main title for the plot. Default is \code{NULL}.}
+\item{title}{Optional plot title.}
 
-\item{subtitle}{Character. Subtitle for the plot. Automatically generated based on \code{conf_level} if missing.}
+\item{subtitle}{Optional plot subtitle. If omitted, the confidence level is
+displayed.}
 
-\item{xlab}{Character. Label for the x-axis. Default is \code{"Estimate Value"}.}
+\item{xlab}{Label for the x axis.}
 
-\item{ylab}{Character. Label for the y-axis. Default is \code{"Coefficient"}.}
+\item{ylab}{Label for the y axis.}
 }
 \value{
-A \code{ggplot} object containing the coefficient plot.
+A \code{ggplot} object when \code{facet = FALSE}. When
+  \code{facet = TRUE}, a \code{patchwork} object containing the faceted
+  coefficient plots is returned.
 }
 \description{
-Creates a coefficient plot (also known as a forest plot) to visualize point estimates 
-and confidence intervals for one or more fitted \code{unitregTMB} models. 
-It allows for easy model comparison, component selection (mean, precision, or inflation), 
-and highly customizable \code{ggplot2} aesthetics.
+Creates coefficient plots with Wald confidence intervals for one or more
+fitted \code{unitregTMB} models. Fixed effects from the \code{mu},
+\code{phi}, \code{p0}, and \code{p1} distributional predictors can be
+displayed separately or together.
 }
 \details{
-When \code{facet = TRUE}, the function requires the \code{patchwork}, \code{grid}, and \code{ggh4x} 
-packages to arrange the panels seamlessly. When \code{facet = FALSE}, models are plotted together 
-in a single panel and distinguished by color and shape.
+Confidence intervals are Wald intervals computed from the fixed-effect
+estimates and standard errors stored in the fitted \code{unitregTMB}
+object. Therefore, the model must have been fitted with standard-error
+calculation enabled.
+
+When several models have the same family label, unique suffixes are added
+automatically so that their coefficients are not combined accidentally.
 }
 \examples{
 \donttest{
-#                    family = beta_fam(model_for = "mean"),  
-#                    data = bodyfat_long)
-# fit2 <- unitregTMB(y ~ age + bmi + gender + ipaq + (1 | id), 
-#                    family = unitgamma(model_for = "mean"),  
-#                    data = bodyfat_long)
-# # 1. Plot the location components (mu) for a single model
-# plot_coef(fit1, component = "mu")
-#
-# # 2. Compare two models overlaying them in the same panel (facet = FALSE)
-# plot_coef(fit1, fit2, component = "mu", facet = FALSE, palette = "Set1")
-#
-# # 3. Plot all components of a model with mathematical labels and a custom palette
-# plot_coef(fit1, component = "all", math_labels = TRUE, palette = "ggsci::npg")
+data("wqi", package = "unitregTMB")
+
+fit1 <- unitregTMB(
+  y ~ location,
+  data = wqi,
+  family = beta_fam(model_for = "mean")
+)
+
+fit2 <- unitregTMB(
+  y ~ location,
+  data = wqi,
+  family = unitgamma(model_for = "mean")
+)
+
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+  plot_coef(fit1, component = "mu", facet = FALSE)
+  plot_coef(fit1, fit2, component = "mu", facet = FALSE)
+}
 }
 
+}
+\author{
+Ricardo Rasmussen Petterle
 }

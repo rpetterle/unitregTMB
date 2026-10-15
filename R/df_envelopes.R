@@ -1,93 +1,197 @@
-#' Extract Envelope Data into a Data Frame for unitregTMB Models
+#' Extract Simulated-Envelope Data from unitregTMB Models
 #'
-#' @description 
-#' Method for the \code{regcore::df_envelopes} generic. Extracts the coordinates of 
-#' simulated envelopes from one or more fitted \code{unitregTMB} models. The result 
-#' is a tidy data frame in long format, highly optimized for creating faceted 
-#' graphics using \code{ggplot2}.
+#' @description
+#' Computes simulated residual envelopes for one or more fitted
+#' \code{unitregTMB} models through the \code{regcore} envelope machinery and
+#' combines the resulting coordinates in long format for subsequent plotting or
+#' comparison.
 #'
-#' @param object An object of class \code{unitregTMB}.
-#' @param ... Additional objects of class \code{unitregTMB} to be compared.
-#' @param nsim Number of simulations used to compute the envelope. Default is 50.
-#' @param halfnormal logical. If \code{TRUE} (default), a half-normal plot is produced. 
-#'        If \code{FALSE}, a normal plot is produced. Ignored if \code{resid.type = "cox-snell"}.
-#' @param resid.type Type of residuals to be used: \code{"quantile"} (default) or \code{"cox-snell"}.
-#' @param ncpus Number of cores to use for parallel computing. Default is 1.
-#' @param show.progress logical. Should the progress bar and messages be displayed? Default is \code{TRUE}.
+#' @param object A fitted object of class \code{unitregTMB}.
+#' @param ... Additional fitted \code{unitregTMB} objects.
+#' @param nsim Positive integer giving the number of bootstrap simulations used
+#'   to construct each envelope.
+#' @param halfnormal Logical. If \code{TRUE}, a half-normal envelope is
+#'   constructed.
+#' @param resid.type Character string specifying the residual type. Available
+#'   choices are \code{"quantile"} and \code{"cox-snell"}.
+#' @param ncpus Positive integer giving the number of outer bootstrap workers.
+#' @param show.progress Logical. If \code{TRUE}, progress information is
+#'   displayed.
 #'
-#' @return A \code{data.frame} containing the simulated envelope coordinates 
-#'         (\code{Theoretical}, \code{Observed}, \code{Lower}, \code{Median}, \code{Upper}) 
-#'         for all provided models. A factor column \code{Model} is included to distinguish 
-#'         the source of each set of residuals, properly ordered.
-#'         
-#' @importFrom regcore df_envelopes plot_envelope
-#' @export
+#' @details
+#' Model labels include the distribution name and, when available, the
+#' mean/mode/quantile parameterization, quantile level, zero/one augmentation,
+#' ordinary random-effects structure, and spatial structure. The actual
+#' simulation and envelope construction are delegated to
+#' \code{regcore::plot_envelope}.
+#'
+#' @return A \code{data.frame} containing the envelope coordinates returned by
+#'   \code{regcore}, including \code{Theoretical}, \code{Observed},
+#'   \code{Lower}, \code{Median}, \code{Upper}, and a factor \code{Model}
+#'   identifying the fitted model.
 #'
 #' @examples
 #' \donttest{
-#' # Assuming 'da' is your dataset
-#' # fit_vas <- unitregTMB(Y ~ x, family = vasicek(), data = da)
-#' # fit_bet <- unitregTMB(Y ~ x, family = beta_fam(), data = da)
+#' data("wqi", package = "unitregTMB")
 #'
-#' # Extract tidy data frame for ggplot2
-#' # df_plot <- df_envelopes(fit_vas, fit_bet, nsim = 19)
-#' 
-#' # Example ggplot2 code:
-#' # library(ggplot2)
-#' # ggplot(df_plot, aes(x = Theoretical)) +
-#' #   geom_ribbon(aes(ymin = Lower, ymax = Upper), fill = "grey85", alpha = 0.5) +
-#' #   geom_point(aes(y = Observed)) +
-#' #   facet_wrap(~ Model)
+#' fit <- unitregTMB(
+#'   y ~ location,
+#'   data = wqi,
+#'   family = unitgamma(model_for = "mean"),
+#' )
+#'
+#' env <- regcore::df_envelopes(
+#'   fit,
+#'   nsim = 5,
+#'   ncpus = 1,
+#'   show.progress = FALSE
+#' )
+#'
+#' head(env)
 #' }
-df_envelopes.unitregTMB <- function(object, ..., nsim = 50, halfnormal = TRUE, 
-                                    resid.type = c("quantile", "cox-snell"), 
+#'
+#' @author Ricardo Rasmussen Petterle
+#' @importFrom regcore df_envelopes
+#' @method df_envelopes unitregTMB
+#' @export
+df_envelopes.unitregTMB <- function(object, ..., nsim = 50, halfnormal = TRUE,
+                                    resid.type = c("quantile", "cox-snell"),
                                     ncpus = 1, show.progress = TRUE) {
-  
+
   resid.type <- match.arg(resid.type)
+
+  if (length(nsim) != 1L || !is.finite(nsim) || nsim < 1 || nsim != as.integer(nsim)) {
+    stop("'nsim' must be a positive integer.", call. = FALSE)
+  }
+
+  if (length(ncpus) != 1L || !is.finite(ncpus) || ncpus < 1 || ncpus != as.integer(ncpus)) {
+    stop("'ncpus' must be a positive integer.", call. = FALSE)
+  }
+
+  if (length(halfnormal) != 1L || !is.logical(halfnormal) || is.na(halfnormal)) {
+    stop("'halfnormal' must be TRUE or FALSE.", call. = FALSE)
+  }
+
+  if (length(show.progress) != 1L || !is.logical(show.progress) || is.na(show.progress)) {
+    stop("'show.progress' must be TRUE or FALSE.", call. = FALSE)
+  }
+
+  nsim <- as.integer(nsim)
+  ncpus <- as.integer(ncpus)
+
   models <- list(object, ...)
-  
-  is_valid_model <- sapply(models, inherits, "unitregTMB")
-  if (!all(is_valid_model)) {
-    stop("All unnamed arguments must be 'unitregTMB' objects.", call. = FALSE)
+  ok <- vapply(models, inherits, logical(1), what = "unitregTMB")
+
+  if (!all(ok)) {
+    stop("All supplied objects must inherit from 'unitregTMB'.", call. = FALSE)
   }
-  
-  model_names <- sapply(models, function(m) {
-    if (is.list(m$family)) {
-      as.character(m$family$name)
-    } else if (!is.null(m$family)) {
-      as.character(m$family)
+
+  model_label <- function(model) {
+    fam <- if (!is.null(model$family) && length(model$family)) {
+      as.character(model$family)[1L]
     } else {
-      "unitregTMB model"
+      "unitregTMB"
     }
-  })
-  
-  if (any(duplicated(model_names))) {
-    model_names <- make.unique(model_names)
+
+    fam_obj <- model$family_object
+    model_for <- NULL
+
+    if (!is.null(fam_obj$model_for) && length(fam_obj$model_for)) {
+      model_for <- as.character(fam_obj$model_for)[1L]
+    } else if (!is.null(fam_obj$family_code) && length(fam_obj$family_code)) {
+      code <- as.integer(fam_obj$family_code)[1L]
+      if (is.finite(code)) {
+        if (code %in% 0:4) model_for <- "mean"
+        if (code %in% 5:8) model_for <- "mode"
+        if (code %in% 9:15) model_for <- "quantile"
+      }
+    }
+
+    details <- character()
+
+    if (!is.null(model_for) && nzchar(model_for)) {
+      details <- c(details, model_for)
+    }
+
+    if (!is.null(model$tau) && length(model$tau) == 1L && is.finite(model$tau)) {
+      details <- c(details, paste0("tau=", format(model$tau, trim = TRUE)))
+    }
+
+    aug <- c(if (isTRUE(model$has_p0)) "p0" else NULL,
+             if (isTRUE(model$has_p1)) "p1" else NULL)
+    if (length(aug)) {
+      details <- c(details, paste0("inflation=", paste(aug, collapse = "+")))
+    }
+
+    has_re <- any(
+      isTRUE(model$has_random_effects_mu),
+      isTRUE(model$has_random_effects_phi),
+      isTRUE(model$has_random_effects_p0),
+      isTRUE(model$has_random_effects_p1)
+    )
+    if (has_re) details <- c(details, "mixed")
+
+    has_sp <- any(
+      isTRUE(model$has_spatial_effects_mu),
+      isTRUE(model$has_spatial_effects_phi),
+      isTRUE(model$has_spatial_effects_p0),
+      isTRUE(model$has_spatial_effects_p1)
+    )
+    if (has_sp) details <- c(details, "spatial")
+
+    if (length(details)) {
+      paste0(fam, " [", paste(details, collapse = ", "), "]")
+    } else {
+      fam
+    }
   }
-  
-  df_list <- lapply(seq_along(models), function(i) {
-    mod <- models[[i]]
-    m_name <- model_names[i]
-    
+
+  labels <- make.unique(vapply(models, model_label, character(1)))
+
+  out <- lapply(seq_along(models), function(i) {
     if (show.progress) {
-      cat(sprintf("\nExtracting envelope data for: %s\n", m_name))
+      cat("\nEnvelope for model: ", labels[i], "\n", sep = "")
     }
-    
-    env_res <- plot_envelope(mod, plot = FALSE, nsim = nsim, halfnormal = halfnormal, 
-                             resid.type = resid.type, ncpus = ncpus, show.progress = show.progress)
-    
-    if (is.null(env_res) || is.null(env_res$data)) {
-      stop(sprintf("Failed to extract envelope data for model: %s", m_name), call. = FALSE)
+
+    env <- regcore::plot_envelope(
+      models[[i]],
+      plot = FALSE,
+      nsim = nsim,
+      halfnormal = halfnormal,
+      resid.type = resid.type,
+      ncpus = ncpus,
+      show.progress = show.progress
+    )
+
+    if (is.null(env) || is.null(env$data)) {
+      stop(
+        "Envelope data could not be extracted for model '",
+        labels[i],
+        "'.",
+        call. = FALSE
+      )
     }
-    
-    df <- env_res$data
-    df$Model <- factor(m_name, levels = model_names)
-    
-    return(df)
+
+    required <- c("Theoretical", "Observed", "Lower", "Median", "Upper")
+    missing <- setdiff(required, names(env$data))
+
+    if (length(missing)) {
+      stop(
+        "Envelope data for model '",
+        labels[i],
+        "' are missing required columns: ",
+        paste(missing, collapse = ", "),
+        ".",
+        call. = FALSE
+      )
+    }
+
+    z <- env$data
+    z$Model <- factor(labels[i], levels = labels)
+    z
   })
-  
-  df_final <- do.call(rbind, df_list)
-  rownames(df_final) <- NULL
-  
-  return(df_final)
+
+  ans <- do.call(rbind, out)
+  rownames(ans) <- NULL
+  ans
 }

@@ -1,15 +1,23 @@
 #' @importFrom stats glm.fit quasibinomial coef fitted var model.matrix model.frame model.response qlogis pnorm as.formula
 #' @importFrom reformulas findbars nobars subbars
-#' @importFrom Matrix t Matrix KhatriRao fac2sparse
+#' @importFrom Matrix t Matrix KhatriRao fac2sparse sparseMatrix rowSums
 #' @importFrom TMB MakeADFun sdreport
 #' @importFrom utils modifyList
 #' @importFrom Rcpp sourceCpp
 #' @useDynLib unitregTMB
 NULL
 
-## ----------------------------------------------------------------------------
-## unitregTMB.control
-## ----------------------------------------------------------------------------
+.unitregTMB_rss_mb <- function() {
+  status_file <- "/proc/self/status"
+  if (!file.exists(status_file)) return(NA_real_)
+  x <- tryCatch(readLines(status_file, warn = FALSE), error = function(e) character())
+  z <- grep("^VmRSS:", x, value = TRUE)
+  if (!length(z)) return(NA_real_)
+  kb <- suppressWarnings(as.numeric(sub("^VmRSS:[[:space:]]*([0-9]+).*", "\\1", z[1L])))
+  if (!is.finite(kb)) return(NA_real_)
+  kb / 1024
+}
+
 #' @title Control Parameters for unitregTMB Model Fitting
 #' 
 #' @description 
@@ -25,6 +33,7 @@ NULL
 #' @param optimizer A character string specifying the optimizer to use. Options are \code{"nlminb"} (default) or \code{"optim"}.
 #' @param optim.method The method to be used if \code{optimizer = "optim"}. Default is \code{"BFGS"}.
 #' @param optim.control A list of additional control parameters to be passed to the chosen optimizer.
+#' @param parallel Retained for compatibility. The validated serial build requires \code{list(n = 1L, autopar = FALSE)}; requests for multiple threads or automatic parallelization produce an error.
 #' @param ... Additional arguments.
 #' 
 #' @return A list containing the specified control parameters to be used in \code{unitregTMB.fit}.
@@ -38,19 +47,38 @@ unitregTMB.control <- function(eval.max = 2000,
                                optimizer = c("nlminb", "optim"),
                                optim.method = "BFGS",
                                optim.control = list(),
+                               parallel = list(n = 1L, autopar = FALSE),
                                ...) {
   optimizer <- match.arg(optimizer)
-  list(
-    eval.max = eval.max, iter.max = iter.max, verbose = verbose,
-    sd.report = sd.report, get.joint.precision = get.joint.precision, 
-    optimizer = optimizer, optim.method = optim.method, optim.control = optim.control,
-    ...
-  )
+
+  if (is.numeric(parallel) && length(parallel) == 1L) {
+    parallel <- list(n = as.integer(parallel), autopar = FALSE)
+  }
+  if (!is.list(parallel)) {
+    stop("'parallel' must be a named list or a single positive integer.")
+  }
+  if (is.null(parallel$n)) parallel$n <- 1L
+  if (is.null(parallel$autopar)) parallel$autopar <- FALSE
+
+  parallel$n <- as.integer(parallel$n)
+  if (length(parallel$n) != 1L || is.na(parallel$n) || parallel$n < 1L) {
+    stop("'parallel$n' must be a single positive integer.")
+  }
+  parallel$autopar <- as.logical(parallel$autopar)
+  if (length(parallel$autopar) != 1L || is.na(parallel$autopar)) {
+    stop("'parallel$autopar' must be TRUE or FALSE.")
+  }
+  if (parallel$n != 1L || parallel$autopar) {
+    stop("Explicit parallelization has been removed from this unitregTMB build. ",
+         "Use parallel = list(n = 1L, autopar = FALSE).")
+  }
+
+  list(eval.max = eval.max, iter.max = iter.max, verbose = verbose,
+       sd.report = sd.report, get.joint.precision = get.joint.precision, 
+       optimizer = optimizer, optim.method = optim.method, optim.control = optim.control,
+       parallel = parallel, ...)
 }
 
-## ----------------------------------------------------------------------------
-## unitregTMB.fit
-## ----------------------------------------------------------------------------
 #' Fit a unitregTMB Model (Internal)
 #' 
 #' @description 
@@ -68,19 +96,46 @@ unitregTMB.control <- function(eval.max = 2000,
 #' @keywords internal
 unitregTMB.fit <- function(data_tmb, parameters, random_args = NULL,
                            control = unitregTMB.control(), silent = FALSE) {
-  
-  obj <- TMB::MakeADFun(
-    data = data_tmb, parameters = parameters, random = random_args,
-    DLL = "unitregTMB", silent = silent
-  )
-  
+
+  parallel <- control$parallel
+  if (is.null(parallel)) parallel <- list(n = 1L, autopar = FALSE)
+  if (is.numeric(parallel) && length(parallel) == 1L) {
+    parallel <- list(n = as.integer(parallel), autopar = FALSE)
+  }
+  if (!is.list(parallel)) stop("Invalid 'control$parallel'.")
+  if (is.null(parallel$n)) parallel$n <- 1L
+  if (is.null(parallel$autopar)) parallel$autopar <- FALSE
+  requested_threads <- as.integer(parallel$n)
+  requested_autopar <- as.logical(parallel$autopar)
+  if (length(requested_threads) != 1L || is.na(requested_threads) ||
+      length(requested_autopar) != 1L || is.na(requested_autopar) ||
+      requested_threads != 1L || requested_autopar) {
+    stop("This unitregTMB build uses the validated serial objective only. ",
+         "Set control = unitregTMB.control(parallel = 1L).")
+  }
+
+  old_omp <- tryCatch(TMB::openmp(DLL = "unitregTMB"), error = function(e) NULL)
+  old_autopar <- if (is.null(old_omp)) FALSE else isTRUE(attr(old_omp, "autopar"))
+  TMB::openmp(n = 1L, autopar = FALSE, DLL = "unitregTMB")
+  if (!is.null(old_omp)) {
+    on.exit(try(TMB::openmp(n = as.integer(old_omp),
+                            autopar = old_autopar, DLL = "unitregTMB"),
+                silent = TRUE), add = TRUE)
+  }
+  active_threads <- 1L
+
+  rss_before_makeadfun <- .unitregTMB_rss_mb()
+  makeadfun_start <- proc.time()[["elapsed"]]
+  obj <- TMB::MakeADFun(data = data_tmb, parameters = parameters, random = random_args,
+                        DLL = "unitregTMB", silent = silent)
+  makeadfun_time <- proc.time()[["elapsed"]] - makeadfun_start
+  rss_after_makeadfun <- .unitregTMB_rss_mb()
+
   start_time <- Sys.time()
   optimizer_warnings <- character()
   
   capture_optimizer_warnings <- function(expr) {
-    withCallingHandlers(
-      expr,
-      warning = function(w) {
+    withCallingHandlers(expr, warning = function(w) {
         optimizer_warnings <<- c(optimizer_warnings, conditionMessage(w))
         if (!silent) message("Optimizer warning: ", conditionMessage(w))
         invokeRestart("muffleWarning")
@@ -101,10 +156,14 @@ unitregTMB.fit <- function(data_tmb, parameters, random_args = NULL,
       optim(par = obj$par, fn = obj$fn, gr = obj$gr, method = control$optim.method, control = control$optim.control)
     )
     opt$objective <- opt$value
-  } else { stop("Unsupported optimizer.") }
+  } else { 
+    stop("Unsupported optimizer.") 
+  }
   
   fitting_time <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
-  
+  rss_after_optimizer <- .unitregTMB_rss_mb()
+
+  gradient_start <- proc.time()[["elapsed"]]
   raw_grad <- tryCatch(
     obj$gr(opt$par),
     error = function(e) {
@@ -112,7 +171,8 @@ unitregTMB.fit <- function(data_tmb, parameters, random_args = NULL,
       rep(NA_real_, length(opt$par))
     }
   )
-  
+  gradient_time <- proc.time()[["elapsed"]] - gradient_start
+
   if (all(is.finite(raw_grad))) {
     max_grad <- max(abs(raw_grad))
   } else {
@@ -120,25 +180,38 @@ unitregTMB.fit <- function(data_tmb, parameters, random_args = NULL,
   }
   
   sd_report <- NULL
-  if (control$sd.report) {  
+  sdreport_time <- 0
+  if (control$sd.report) {
     if(control$verbose) cat("Calculating standard errors...\n")
+    sd_start <- proc.time()[["elapsed"]]
     sd_report <- tryCatch({
       TMB::sdreport(obj, getJointPrecision = control$get.joint.precision)
-    }, error = function(e) { 
-      warning("sdreport failed: ", conditionMessage(e)); NULL 
+    }, error = function(e) {
+      warning("sdreport failed: ", conditionMessage(e)); NULL
     })
+    sdreport_time <- proc.time()[["elapsed"]] - sd_start
   }
-  
-  return(list(obj = obj, opt = opt, sd_report = sd_report, 
-              convergence = opt$convergence, message = opt$message, 
-              max_gradient = max_grad, full_gradient = raw_grad, 
-              optimizer_warnings = unique(optimizer_warnings), 
-              fitting_time = fitting_time))
+  rss_after_sdreport <- .unitregTMB_rss_mb()
+
+  return(list(obj = obj, opt = opt, sd_report = sd_report,
+              convergence = opt$convergence, message = opt$message,
+              max_gradient = max_grad, full_gradient = raw_grad,
+              optimizer_warnings = unique(optimizer_warnings),
+              fitting_time = fitting_time,
+              timing = list(makeadfun = makeadfun_time,
+                            optimizer = fitting_time,
+                            final_gradient = gradient_time,
+                            sdreport = sdreport_time),
+              memory = list(rss_before_makeadfun = rss_before_makeadfun,
+                            rss_after_makeadfun = rss_after_makeadfun,
+                            rss_after_optimizer = rss_after_optimizer,
+                            rss_after_sdreport = rss_after_sdreport),
+              parallel = list(requested = requested_threads,
+                              active = active_threads,
+                              autopar = FALSE,
+                              use_parallel = 0L)))
 }
 
-## ----------------------------------------------------------------------------
-## Auxiliar function for random effects 
-## ----------------------------------------------------------------------------
 #' Parse Random Effects Helper
 #' 
 #' @description 
@@ -193,9 +266,123 @@ parse_random_effects <- function(bars, data) {
   list(Z = do.call(cbind, Z_list), cnms = cnms, flist = flist, group_names = group_names)
 }
 
-## ----------------------------------------------------------------------------
-## is_zero_formula Helper
-## ----------------------------------------------------------------------------
+#' Prepare Random Effects for a Distributional Component
+#'
+#' @description
+#' Internal helper that parses an lme4-style random-effects specification,
+#' constructs the sparse design matrix, and creates indexing information and
+#' Cholesky starting values for one distributional component.
+#'
+#' @param formula Model formula for the component.
+#' @param data Cleaned model data.
+#' @param component Character label used in diagnostics.
+#'
+#' @return A list containing the fixed-effects formula, sparse random-effects
+#'   design matrix, indexing vectors, starting values, and metadata.
+#'
+#' @keywords internal
+prepare_random_component <- function(formula, data, component = "mu") {
+
+  Z_empty <- Matrix::Matrix(0, nrow(data), 0, sparse = TRUE)
+
+  empty_result <- function(fixed_formula = NULL, bars = list()) {
+    list(
+      component = component,
+      has_random_effects = FALSE,
+      bars = bars,
+      fixed_formula = fixed_formula,
+      Z = Z_empty,
+
+      terms = list(),
+
+      re_chol_init = numeric(0),
+
+      re_info = list(has_random_effects = FALSE)
+    )
+  }
+
+  if (is.null(formula)) {
+    return(empty_result())
+  }
+
+  bars <- reformulas::findbars(formula)
+  fixed_formula <- reformulas::nobars(formula)
+  has_random <- length(bars) > 0L
+
+  if (!has_random) {
+    return(empty_result(fixed_formula = fixed_formula, bars = bars))
+  }
+
+  re_parsed <- parse_random_effects(bars, data)
+
+  Z <- re_parsed$Z
+  cnms <- re_parsed$cnms
+  flist <- re_parsed$flist
+  grp_names <- re_parsed$group_names
+
+  n_terms <- length(bars)
+  re_n_comp <- integer(n_terms)
+  n_lev_list <- integer(n_terms)
+  re_chol_init <- numeric(0)
+  terms <- vector("list", n_terms)
+
+  re_cov_unstructured <- 0L
+
+  for (i in seq_len(n_terms)) {
+
+    n_comp <- length(cnms[[i]])
+    n_lev <- nlevels(flist[[i]])
+    n_chol <- n_comp * (n_comp + 1L) / 2L
+
+    re_n_comp[i] <- n_comp
+    n_lev_list[i] <- n_lev
+
+    chol_vec <- rep(0.0, n_chol)
+
+    diag_pos <- integer(n_comp)
+    pos <- 1L
+    for (j in seq_len(n_comp)) {
+      diag_pos[j] <- pos
+      pos <- pos + n_comp - j + 1L
+    }
+
+    chol_vec[diag_pos] <- log(0.5)
+    re_chol_init <- c(re_chol_init, chol_vec)
+
+    terms[[i]] <- list(
+      cov_type = as.integer(re_cov_unstructured),
+      n_coef = as.integer(n_comp),
+      n_levels = as.integer(n_lev),
+      n_cov_par = as.integer(n_chol),
+      full_corr = as.integer(n_comp > 1L)
+    )
+  }
+
+  re_info <- list(
+    has_random_effects = TRUE,
+    component = component,
+    n_re_terms = n_terms,
+    re_term_size = re_n_comp,
+    group_var_names = grp_names,
+    cnms = cnms,
+    n_re_levels_list = n_lev_list,
+    group_levels = lapply(flist, levels),
+
+    terms = terms
+  )
+
+  list(
+    component = component,
+    has_random_effects = TRUE,
+    bars = bars,
+    fixed_formula = fixed_formula,
+    Z = Z,
+    terms = terms,
+    re_chol_init = re_chol_init,
+    re_info = re_info
+  )
+}
+
 #' Check for Empty Formulas
 #' 
 #' @description 
@@ -213,476 +400,549 @@ is_zero_formula <- function(formula) {
   identical(attr(trm, "intercept"), 0L) && length(attr(trm, "term.labels")) == 0L
 }
 
-## ----------------------------------------------------------------------------
-## unitregTMB (main function)
-## ----------------------------------------------------------------------------
+#' Prepare a Proper CAR Spatial Effect
+#'
+#' @description
+#' Internal helper that validates an areal adjacency matrix and constructs the
+#' sparse observation-to-region incidence matrix used by the TMB objective.
+#'
+#' @param spatial A one-sided formula containing exactly one region variable,
+#'   for example \code{~ state}.
+#' @param adjacency A square adjacency matrix. Positive off-diagonal entries
+#'   indicate neighboring regions. If row and column names are supplied, they
+#'   are matched to the observed region levels.
+#' @param data The cleaned model data.
+#'
+#' @return A list containing the sparse incidence matrix, adjacency matrix,
+#'   number of neighbors, region factor, region levels, and metadata.
+#'
+#' @keywords internal
+prepare_spatial_effects <- function(spatial, adjacency, data) {
+  if (is.null(spatial)) {
+    return(NULL)
+  }
+  if (is.null(adjacency)) stop("A spatial model requires an 'adjacency' matrix.")
+  if (!inherits(spatial, "formula") || length(spatial) != 2L) {
+    stop("'spatial' must be a one-sided formula, for example ~ region.")
+  }
+
+  spatial_vars <- all.vars(spatial)
+  if (length(spatial_vars) != 1L) {
+    stop("'spatial' must contain exactly one region variable.")
+  }
+
+  region_var <- spatial_vars[1L]
+  if (!region_var %in% names(data)) {
+    stop("Spatial region variable '", region_var, "' was not found in 'data'.")
+  }
+
+  region <- data[[region_var]]
+  if (anyNA(region)) {
+    stop("The spatial region variable contains missing values after model-frame processing.")
+  }
+  
+  region <- droplevels(as.factor(region))
+  region_levels <- levels(region)
+  n_regions <- length(region_levels)
+
+  if (n_regions < 2L) stop("A spatial CAR model requires at least two observed regions.")
+
+  W <- tryCatch(
+    Matrix::Matrix(adjacency, sparse = TRUE),
+    error = function(e) stop("'adjacency' could not be converted to a sparse matrix: ", conditionMessage(e))
+  )
+
+  if (nrow(W) != ncol(W)) stop("'adjacency' must be a square matrix.")
+
+  rn <- rownames(W)
+  cn <- colnames(W)
+  if (!is.null(rn) || !is.null(cn)) {
+    if (is.null(rn) || is.null(cn)) {
+      stop("'adjacency' must have both row and column names, or neither.")
+    }
+    if (anyDuplicated(rn) || anyDuplicated(cn)) {
+      stop("Row and column names of 'adjacency' must be unique.")
+    }
+    if (!all(region_levels %in% rn) || !all(region_levels %in% cn)) {
+      stop("Row/column names of 'adjacency' must contain every observed level of '", region_var, "'.")
+    }
+    W <- W[region_levels, region_levels, drop = FALSE]
+  } else {
+    if (nrow(W) != n_regions) {
+      stop("Dimension mismatch: unnamed 'adjacency' has ", nrow(W),
+           " regions but the spatial variable has ", n_regions,
+           " observed levels. Supply row/column names to allow safe matching.")
+    }
+    dimnames(W) <- list(region_levels, region_levels)
+  }
+
+  if (length(W@x) > 0L) {
+    if (anyNA(W@x) || any(!is.finite(W@x))) stop("'adjacency' contains missing or non-finite values.")
+    if (any(W@x < 0)) stop("'adjacency' cannot contain negative entries.")
+  }
+
+  if (any(abs(Matrix::diag(W)) > 1e-12)) stop("The diagonal of 'adjacency' must be zero.")
+  if (!isTRUE(Matrix::isSymmetric(W, tol = 1e-12))) stop("'adjacency' must be symmetric.")
+
+  if (length(W@x) > 0L) W@x[] <- 1
+  W <- Matrix::drop0(W)
+
+  num_neighbors <- as.numeric(Matrix::rowSums(W))
+  if (any(num_neighbors <= 0)) {
+    bad <- region_levels[num_neighbors <= 0]
+    stop("Proper CAR currently requires every region to have at least one neighbor. ",
+         "Regions without neighbors: ", paste(bad, collapse = ", "), ".")
+  }
+
+  D_spatial <- Matrix::sparseMatrix(
+    i = seq_len(n_regions), j = seq_len(n_regions), x = num_neighbors,
+    dims = c(n_regions, n_regions)
+  )
+
+  Z_spatial <- Matrix::sparseMatrix(
+    i = seq_len(nrow(data)),
+    j = as.integer(region),
+    x = 1,
+    dims = c(nrow(data), n_regions),
+    dimnames = list(rownames(data), region_levels)
+  )
+
+  list(Z = Z_spatial, W = W, D = D_spatial, num_neighbors = num_neighbors,
+       region = region, region_var = region_var, region_levels = region_levels,
+       n_regions = n_regions, structure = "proper CAR")
+}
+
 #' @title Fit Regression Models for Correlated Continuous Bounded Data
 #' 
 #' @description 
 #' Fits regression models for data strictly or partially bounded in the unit interval 
-#' [0, 1]. \code{unitregTMB} allows modeling the location (mean, mode, or quantile) 
-#' and precision/dispersion parameters using fixed and random effects. It also 
-#' natively supports exact zero- and one-inflation components for boundary observations.
+#' [0, 1]. \code{unitregTMB} allows fixed and random effects in the location 
+#' (mean, mode, or quantile), precision/dispersion, zero-inflation, and 
+#' one-inflation predictors. It also supports areal CAR spatial effects across all parameters.
 #' 
 #' @param formula A two-sided formula for the location parameter (e.g., \code{Y ~ x1 + x2}). 
 #'   Random effects can be specified using the \code{lme4} syntax (e.g., \code{(1 | group)}).
 #' @param data A data frame, list, or environment containing the variables in the model.
-#' @param family A \code{unitregTMBFamily} object specifying the assumed distribution 
-#'   (e.g., \code{beta_mean()}, \code{kumaraswamy_mode()}, \code{ashw(model_for = "quantile")}).
+#' @param family A \code{unitregTMBFamily} object specifying the assumed distribution.
 #' @param phi.formula A one-sided formula for the precision/shape parameter. Default is \code{~ 1}.
-#' @param p0.formula A one-sided formula for the zero-inflation probability. If \code{NULL} and 
-#'   exact zeros are present in the response, an intercept-only model is fitted by default.
-#' @param p1.formula A one-sided formula for the one-inflation probability. If \code{NULL} and 
-#'   exact ones are present in the response, an intercept-only model is fitted by default.
+#' @param p0.formula A one-sided formula for the zero-inflation probability.
+#' @param p1.formula A one-sided formula for the one-inflation probability.
+#' @param spatial Optional one-sided formula identifying the areal spatial unit for a proper CAR effect in \code{mu}, for example \code{~ state}.
+#' @param spatial.phi Optional one-sided formula for a proper CAR spatial effect in \code{phi}.
+#' @param spatial.p0 Optional one-sided formula for a proper CAR spatial effect in \code{p0}.
+#' @param spatial.p1 Optional one-sided formula for a proper CAR spatial effect in \code{p1}.
+#' @param adjacency Optional square symmetric adjacency matrix associated with the spatial formulas.
 #' @param weights An optional vector of 'prior weights' to be used in the fitting process.
 #' @param offset An optional vector to be added to the linear predictor for the location parameter.
-#' @param subset An optional vector specifying a subset of observations to be used in the fitting process.
+#' @param subset An optional vector specifying a subset of observations.
 #' @param na.action A function which indicates what should happen when the data contain \code{NA}s. 
-#'   The default is \code{na.omit}.
 #' @param start An optional list of initial values for the model parameters.
 #' @param control A list of control parameters returned by \code{unitregTMB.control}.
 #' 
 #' @details 
 #' The function uses Template Model Builder (TMB) to efficiently evaluate the 
 #' marginal log-likelihood via the Laplace approximation when random effects are present. 
+#' Ordinary random effects are modeled independently across the \code{mu}, \code{phi}, 
+#' \code{p0}, and \code{p1} distributional components, while allowing correlated 
+#' random coefficients within each component and grouping term. 
 #' The response variable must be bounded in the [0, 1] interval. If the response contains 
-#' exactly 0s or 1s, the model automatically triggers the corresponding inflation sub-models 
-#' (\code{p0.formula} and \code{p1.formula}).
+#' exactly 0s or 1s, the model automatically triggers the corresponding inflation sub-models. 
+#' Areal spatial dependence can be included in any predictor through a proper conditional 
+#' autoregressive (CAR) Gaussian Markov random field when spatial formulas and 
+#' an \code{adjacency} matrix are supplied.
 #' 
-#' @return An object of class \code{unitregTMB} containing the following components:
-#' \item{obj}{The TMB object created by \code{MakeADFun}.}
-#' \item{opt}{The optimization result returned by the chosen optimizer.}
-#' \item{sd_report}{The standard error report generated by \code{TMB::sdreport}.}
-#' \item{model_coef}{A list of the estimated coefficients for each model component (\code{mu}, \code{phi}, \code{p0}, \code{p1}).}
-#' \item{model_std}{A list of standard errors corresponding to the estimated coefficients.}
-#' \item{logLik}{The final maximized log-likelihood.}
-#' \item{AIC}{Akaike Information Criterion.}
-#' \item{BIC}{Bayesian Information Criterion.}
-#' \item{fitted.values}{A list of fitted values based on the full model.}
-#' \item{random_effects_variance}{A list of estimated variances and correlations for the random effects.}
+#' @return An object of class \code{unitregTMB} containing the optimization results,
+#' random effects, spatial components, and convergence metrics.
 #' 
 #' @author Ricardo Rasmussen Petterle
 #' 
 #' @examples
 #' \dontrun{
 #' # Basic mean parameterization with Beta distribution
-#' fit1 <- unitregTMB(yield ~ moisture + temp, data = crop_data, family = beta_fam(model_for = "mean"))
+#' fit1 <- unitregTMB(y ~ quarter + location, 
+#'                    family = beta_fam(model_for = "mean"),
+#'                    data = wqi)
 #' 
 #' # Mixed-effects model with Kumaraswamy mode parameterization
-#' fit2 <- unitregTMB(score ~ therapy + (1 | subject), 
-#'                    data = clinical_data, 
-#'                    family = kumaraswamy(model_for = "mode"))
-#' 
-#' # Model with zero-inflation and precision covariates
-#' fit3 <- unitregTMB(fraction ~ x1, 
-#'                    phi.formula = ~ x2,
-#'                    p0.formula = ~ x1,
-#'                    data = bound_data, 
-#'                    family = unitweibull(model_for = "quantile", tau = 0.5))
+#' fit2 <- unitregTMB(y ~ quarter + location + (1 | id), 
+#'                    family = kumaraswamy(model_for = "mode"),
+#'                    data = wqi)
+#'                    
 #' }
 #' 
 #' @export
-unitregTMB <- function(formula, data, family,
-                       phi.formula = ~ 1, p0.formula = NULL, p1.formula = NULL,
-                       weights = NULL, offset = NULL, 
-                       subset, na.action, start = NULL, 
+unitregTMB <- function(formula, data, family, phi.formula = ~ 1, 
+                       p0.formula = NULL, p1.formula = NULL,
+                       spatial = NULL, spatial.phi = NULL,
+                       spatial.p0 = NULL, spatial.p1 = NULL, adjacency = NULL,
+                       weights = NULL, offset = NULL,
+                       subset, na.action, start = NULL,
                        control = unitregTMB.control()) {
-  
+
   cl <- match.call()
-  
+
   if (!is.data.frame(data)) {
     data <- as.data.frame(data)
   }
-  
-  if (is.function(family)) { family <- family() }
-  if (!inherits(family, "unitregTMBFamily")) 
-    stop("Invalid family object.")
-  
+
+  if (is.function(family)) family <- family()
+
+  if (!inherits(family, "unitregTMBFamily")) stop("Invalid family object.")
+
   valid_links <- c("logit", "probit", "cloglog", "cauchit")
-  if (!family$link_r_name %in% valid_links) {
-    stop("Unsupported mean link: ", family$link_r_name, ".")
-  }
-  
+  if (!family$link_r_name %in% valid_links) stop("Unsupported mean link: ", family$link_r_name, ".")
+
   valid_link_codes <- c(logit = 0L, probit = 1L, cloglog = 2L, cauchit = 3L)
   expected_link_code <- unname(valid_link_codes[family$link_r_name])
-  
-  if (length(family$link_code) != 1L || is.na(family$link_code) || 
-      !is.numeric(family$link_code) || as.integer(family$link_code) != expected_link_code) {
+
+  if (length(family$link_code) != 1L || is.na(family$link_code) ||
+      as.integer(family$link_code) != expected_link_code) {
     stop("Inconsistent link name and link code in the family object.")
   }
 
-  re_list <- reformulas::findbars(formula)
-  has_random <- length(re_list) > 0
-  fixed_form <- reformulas::nobars(formula)
-  
-  full_form <- if(has_random) reformulas::subbars(formula) else formula
-  all_forms <- list(full_form, phi.formula, p0.formula, p1.formula)
-  all_forms <- all_forms[!sapply(all_forms, is.null)]
-  
+  substitute_bars <- function(f) {
+    if (is.null(f)) return(NULL)
+    if (length(reformulas::findbars(f)) > 0L) reformulas::subbars(f) else f
+  }
+
+  mu_frame_form <- substitute_bars(formula)
+  all_forms <- list(mu_frame_form, substitute_bars(phi.formula),
+                    substitute_bars(p0.formula), substitute_bars(p1.formula),
+                    spatial, spatial.phi, spatial.p0, spatial.p1)
+  all_forms <- all_forms[!vapply(all_forms, is.null, logical(1))]
+
   all_vars <- unique(unlist(lapply(all_forms, all.vars)))
-  resp_vars <- all.vars(full_form[[2]])
+  resp_vars <- all.vars(mu_frame_form[[2]])
   pred_vars <- setdiff(all_vars, resp_vars)
-  if (length(pred_vars) == 0) pred_vars <- "1"
-  
-  combined_formula <- stats::reformulate(termlabels = pred_vars, response = full_form[[2]], env = environment(formula))
-  
+
+  if (length(pred_vars) == 0L) pred_vars <- "1"
+
+  combined_formula <- stats::reformulate(termlabels = pred_vars,
+                                         response = mu_frame_form[[2]],
+                                         env = environment(formula))
+
   mf_call <- match.call(expand.dots = FALSE)
   m <- match(c("data", "subset", "na.action", "weights", "offset"), names(mf_call), 0L)
   mf_call <- mf_call[c(1L, m)]
   mf_call$formula <- combined_formula
   mf_call$drop.unused.levels <- TRUE
-  
+
   if (is.null(mf_call$na.action)) {
     mf_call$na.action <- quote(stats::na.omit)
   }
-  
+
   mf_call[[1L]] <- quote(stats::model.frame)
   mf <- eval(mf_call, parent.frame())
-  
   clean_data <- data[rownames(mf), , drop = FALSE]
-  
+
   Y <- stats::model.response(mf, "numeric")
   if (any(Y < 0 | Y > 1)) stop("Response must be bounded in the interval [0, 1].")
 
   y_class_vec <- ifelse(Y == 0, 0L, ifelse(Y == 1, 1L, 2L))
-  
+
   if (is.null(p0.formula) && any(y_class_vec == 0L)) p0.formula <- ~ 1
   if (is.null(p1.formula) && any(y_class_vec == 1L)) p1.formula <- ~ 1
-  
+
   has_p0 <- !is.null(p0.formula) && !is_zero_formula(p0.formula)
   has_p1 <- !is.null(p1.formula) && !is_zero_formula(p1.formula)
-  
-  if (any(y_class_vec == 0L) && !has_p0) stop("The response contains exact zeros, but the zero-inflation component is disabled.")
-  if (any(y_class_vec == 1L) && !has_p1) stop("The response contains exact ones, but the one-inflation component is disabled.")
-  
+
+  if (any(y_class_vec == 0L) && !has_p0) stop("Response contains exact zeros, but zero-inflation is disabled.")
+  if (any(y_class_vec == 1L) && !has_p1) stop("Response contains exact ones, but one-inflation is disabled.")
+
   n_obs_clean <- nrow(clean_data)
-  
   weights_vec <- as.vector(stats::model.weights(mf))
-  if (is.null(weights_vec)) {
-    weights_vec <- rep(1.0, n_obs_clean)
-  } else {
-    if (anyNA(weights_vec) || any(!is.finite(weights_vec))) stop("Weights must be finite and non-missing.")
-    if (any(weights_vec < 0)) stop("Weights cannot be negative.")
-  }
-  
-  if (!any(weights_vec > 0)) stop("At least one observation must have a positive weight.")
+  if (is.null(weights_vec)) weights_vec <- rep(1.0, n_obs_clean)
   
   offset_vec <- as.vector(stats::model.offset(mf))
-  if (is.null(offset_vec)) {
-    offset_vec <- rep(0.0, n_obs_clean)
-  } else {
-    if (anyNA(offset_vec) || any(!is.finite(offset_vec))) stop("Offsets must be finite and non-missing.")
+  if (is.null(offset_vec)) offset_vec <- rep(0.0, n_obs_clean)
+
+  re_mu <- prepare_random_component(formula = formula, data = clean_data, component = "mu")
+  re_phi <- prepare_random_component(formula = phi.formula, data = clean_data, component = "phi")
+  re_p0 <- prepare_random_component(formula = if (has_p0) p0.formula else NULL, data = clean_data, component = "p0")
+  re_p1 <- prepare_random_component(formula = if (has_p1) p1.formula else NULL, data = clean_data, component = "p1")
+
+  has_random_mu <- re_mu$has_random_effects
+  has_random_phi <- re_phi$has_random_effects
+  has_random_p0 <- has_p0 && re_p0$has_random_effects
+  has_random_p1 <- has_p1 && re_p1$has_random_effects
+  has_any_random <- any(has_random_mu, has_random_phi, has_random_p0, has_random_p1)
+
+  X_mu <- stats::model.matrix(re_mu$fixed_formula, clean_data)
+  X_phi <- stats::model.matrix(re_phi$fixed_formula, clean_data)
+  X_p0 <- if (has_p0) stats::model.matrix(re_p0$fixed_formula, clean_data) else matrix(0, nrow(clean_data), 0)
+  X_p1 <- if (has_p1) stats::model.matrix(re_p1$fixed_formula, clean_data) else matrix(0, nrow(clean_data), 0)
+
+  Z_mu <- re_mu$Z; Z_phi <- re_phi$Z; Z_p0 <- re_p0$Z; Z_p1 <- re_p1$Z
+  mt <- stats::terms(re_mu$fixed_formula, data = clean_data)
+
+  has_spatial_mu <- !is.null(spatial)
+  has_spatial_phi <- !is.null(spatial.phi)
+  has_spatial_p0 <- has_p0 && !is.null(spatial.p0)
+  has_spatial_p1 <- has_p1 && !is.null(spatial.p1)
+  
+  has_spatial_any <- has_spatial_mu || has_spatial_phi || has_spatial_p0 || has_spatial_p1
+
+  if (has_spatial_any && is.null(adjacency)) {
+    stop("A spatial model requires an 'adjacency' matrix.")
   }
 
-  Z_mu <- Matrix::Matrix(0, nrow(clean_data), 0, sparse = TRUE)
-  re_info <- list(has_random_effects = FALSE)
-  re_n_comp <- integer(0); re_chol_start <- integer(0); u_start <- integer(0); n_lev_list <- integer(0)
-  log_chol_init <- numeric(0)
-  
-  X_mu <- stats::model.matrix(fixed_form, clean_data)
-  
-  if (has_random) {
-    re_parsed <- parse_random_effects(re_list, clean_data)
-    Z_mu <- re_parsed$Z
-    cnms <- re_parsed$cnms
-    flist <- re_parsed$flist
-    grp_names <- re_parsed$group_names
-    
-    curr_chol <- 0; curr_u <- 0
-    for (i in seq_along(re_list)) {
-      n_comp <- length(cnms[[i]])
-      n_lev <- nlevels(flist[[i]])
-      n_chol <- n_comp * (n_comp + 1) / 2
-      
-      re_n_comp <- c(re_n_comp, n_comp)
-      re_chol_start <- c(re_chol_start, curr_chol)
-      n_lev_list <- c(n_lev_list, n_lev)
-      u_start <- c(u_start, curr_u)
-      
-      chol_vec <- rep(0.0, n_chol)
-      diag_pos <- integer(n_comp)
-      pos <- 1L
-      for (j in seq_len(n_comp)) {
-        diag_pos[j] <- pos
-        pos <- pos + n_comp - j + 1L
-      }
-      chol_vec[diag_pos] <- log(0.5)
-      log_chol_init <- c(log_chol_init, chol_vec)
-      
-      curr_chol <- curr_chol + n_chol
-      curr_u <- curr_u + (n_comp * n_lev)
-    }
-    re_info <- list(has_random_effects = TRUE, n_re_terms = length(re_list),
-                    re_term_n_components = re_n_comp, group_var_names = grp_names,
-                    cnms = cnms, n_re_levels_list = n_lev_list, group_levels = lapply(flist, levels))
-  }
-  
-  X_phi <- stats::model.matrix(phi.formula, clean_data)
-  X_p0 <- if (has_p0) stats::model.matrix(p0.formula, clean_data) else matrix(0, nrow(clean_data), 0)
-  X_p1 <- if (has_p1) stats::model.matrix(p1.formula, clean_data) else matrix(0, nrow(clean_data), 0)
-  mt <- stats::terms(fixed_form, data = clean_data)
-  
-  check_dense_matrix <- function(x, name) {
-    if (anyNA(x) || any(!is.finite(x))) {
-      stop(name, " contains missing or non-finite values. Check transformations and covariates in the corresponding formula.")
-    }
-  }
-  check_dense_matrix(X_mu, "X_mu")
-  check_dense_matrix(X_phi, "X_phi")
-  if (has_p0) check_dense_matrix(X_p0, "X_p0")
-  if (has_p1) check_dense_matrix(X_p1, "X_p1")
-  if (has_random && length(Z_mu@x) > 0L && any(!is.finite(Z_mu@x))) {
-    stop("Z_mu contains non-finite values.")
+  sp_mu <- prepare_spatial_effects(spatial, adjacency, clean_data)
+  sp_phi <- prepare_spatial_effects(spatial.phi, adjacency, clean_data)
+  sp_p0 <- prepare_spatial_effects(if(has_spatial_p0) spatial.p0 else NULL, adjacency, clean_data)
+  sp_p1 <- prepare_spatial_effects(if(has_spatial_p1) spatial.p1 else NULL, adjacency, clean_data)
+
+  build_sp_info <- function(sp_parsed, has_sp) {
+    if (!has_sp) return(list(has_spatial_effects = FALSE))
+    list(has_spatial_effects = TRUE, structure = sp_parsed$structure, region_var = sp_parsed$region_var,
+         region_levels = sp_parsed$region_levels, n_regions = sp_parsed$n_regions, adjacency = sp_parsed$W)
   }
 
-  if(control$verbose) cat("Calculating starting values...\n")
-  
+  spatial_info_mu <- build_sp_info(sp_mu, has_spatial_mu)
+  spatial_info_phi <- build_sp_info(sp_phi, has_spatial_phi)
+  spatial_info_p0 <- build_sp_info(sp_p0, has_spatial_p0)
+  spatial_info_p1 <- build_sp_info(sp_p1, has_spatial_p1)
+
+  Z_sp_empty <- Matrix::Matrix(0, nrow(clean_data), 0, sparse = TRUE)
+  W_sp_empty <- Matrix::Matrix(0, 0, 0, sparse = TRUE)
+  D_sp_empty <- W_sp_empty
+
+  Z_spatial_mu <- if (has_spatial_mu) sp_mu$Z else Z_sp_empty
+  W_spatial_mu <- if (has_spatial_mu) sp_mu$W else W_sp_empty
+  D_spatial_mu <- if (has_spatial_mu) sp_mu$D else D_sp_empty
+  num_neigh_mu <- if (has_spatial_mu) sp_mu$num_neighbors else numeric(0)
+
+  Z_spatial_phi <- if (has_spatial_phi) sp_phi$Z else Z_sp_empty
+  W_spatial_phi <- if (has_spatial_phi) sp_phi$W else W_sp_empty
+  D_spatial_phi <- if (has_spatial_phi) sp_phi$D else D_sp_empty
+  num_neigh_phi <- if (has_spatial_phi) sp_phi$num_neighbors else numeric(0)
+
+  Z_spatial_p0 <- if (has_spatial_p0) sp_p0$Z else Z_sp_empty
+  W_spatial_p0 <- if (has_spatial_p0) sp_p0$W else W_sp_empty
+  D_spatial_p0 <- if (has_spatial_p0) sp_p0$D else D_sp_empty
+  num_neigh_p0 <- if (has_spatial_p0) sp_p0$num_neighbors else numeric(0)
+
+  Z_spatial_p1 <- if (has_spatial_p1) sp_p1$Z else Z_sp_empty
+  W_spatial_p1 <- if (has_spatial_p1) sp_p1$W else W_sp_empty
+  D_spatial_p1 <- if (has_spatial_p1) sp_p1$D else D_sp_empty
+  num_neigh_p1 <- if (has_spatial_p1) sp_p1$num_neighbors else numeric(0)
+
+  if (control$verbose) cat("Calculating starting values...\n")
   interior <- y_class_vec == 2L & weights_vec > 0
-  if (sum(interior) <= ncol(X_mu)) {
-    stop("Too few positive-weight interior observations to initialize the continuous component.")
-  }
   
   glm_fit <- tryCatch(
-    stats::glm.fit(x = X_mu[interior, , drop = FALSE], 
-                   y = Y[interior], 
-                   weights = weights_vec[interior], 
-                   offset = offset_vec[interior], 
+    stats::glm.fit(x = X_mu[interior, , drop = FALSE], y = Y[interior],
+                   weights = weights_vec[interior], offset = offset_vec[interior],
                    family = stats::quasibinomial(family$link_r_name)),
-    error = function(e) NULL
-  )
-  
-  if (is.null(glm_fit)) {
-    beta_mu_init <- rep(0, ncol(X_mu))
-  } else {
-    beta_mu_init <- as.numeric(stats::coef(glm_fit))
-    beta_mu_init[!is.finite(beta_mu_init)] <- 0
-  }
-  
+    error = function(e) NULL)
+
+  beta_mu_init <- if (is.null(glm_fit)) rep(0, ncol(X_mu)) else as.numeric(stats::coef(glm_fit))
+  beta_mu_init[!is.finite(beta_mu_init)] <- 0
+
   linkobj_init <- stats::make.link(family$link_r_name)
   eta_mu_init <- drop(X_mu %*% beta_mu_init + offset_vec)
   mu_hat <- linkobj_init$linkinv(eta_mu_init)
+
+  phi_est <- if (family$family_code == 1L) {
+    mean((Y[interior] - mu_hat[interior])^2 / pmax(mu_hat[interior]^3 * (1 - mu_hat[interior])^3, 1e-10))
+  } else if (family$family_code %in% c(0L, 4L, 5L)) {
+    mean(mu_hat[interior] * (1 - mu_hat[interior])) / (mean((Y[interior] - mu_hat[interior])^2) + 1e-6) - 1
+  } else exp(1)
   
-  ## IDs: 0 (beta mean), 4 (bessel mean), 5 (beta mode)
-  fam_precision_ids <- c(0L, 4L, 5L)
-  if (family$family_code == 1L) {
-  
-  den <- pmax(mu_hat[interior]^3 * (1 - mu_hat[interior])^3, 1e-10)
-  phi_est <- mean((Y[interior] - mu_hat[interior])^2 / den)
   phi_est <- pmin(pmax(phi_est, 1e-4), 100)
-
-  } else if (family$family_code %in% fam_precision_ids) {
-  var_est <- mean((Y[interior] - mu_hat[interior])^2)
-  phi_est_raw <- mean(mu_hat[interior] * (1 - mu_hat[interior])) / (var_est + 1e-6) - 1
-  phi_est <- pmin(pmax(phi_est_raw, 0.1), 100)
-  } else {
-  phi_est <- exp(1)
-}
-
+  
   beta_phi_init <- rep(0, ncol(X_phi))
-  if (ncol(X_phi) > 0L) {
-    if (family$family_code %in% c(2L, 10L)) {
-      phi_start <- 0.5
-      beta_phi_init[1] <- stats::qlogis(phi_start)
-    } else {
-    beta_phi_init[1] <- log(max(phi_est, 1e-4))
+  phi_intercept_idx <- match("(Intercept)", colnames(X_phi))
+  if (!is.na(phi_intercept_idx)) {
+    beta_phi_init[phi_intercept_idx] <- if (family$family_code %in% c(2L, 10L)) stats::qlogis(0.5) else log(max(phi_est, 1e-4))
   }
-}
+
+  p0_start <- sum(weights_vec * (Y == 0)) / sum(weights_vec)
+  p1_start <- sum(weights_vec * (Y == 1)) / sum(weights_vec)
   
-  safe_prob <- function(p, eps = 1e-6) pmin(pmax(p, eps), 1 - eps)
-  weighted_prop <- function(condition, weights) sum(weights * condition) / sum(weights)
-  
-  p0_start <- weighted_prop(Y == 0, weights_vec)
-  p1_start <- weighted_prop(Y == 1, weights_vec)
-  pc_start <- weighted_prop(Y > 0 & Y < 1, weights_vec)
-  
-  if (pc_start == 0) stop("No interior observations found. Continuous density parameters are not identifiable.")
-  
+  init_bound_beta <- function(X, val) { ans <- rep(0, ncol(X)); idx <- match("(Intercept)", colnames(X)); if (!is.na(idx)) ans[idx] <- val; ans }
+
   if (has_p0 && has_p1) {
-    n0 <- sum(Y == 0); n1 <- sum(Y == 1); nc <- sum(Y > 0 & Y < 1)
-    p0_sm <- (n0 + 0.5) / (length(Y) + 1.5)
-    p1_sm <- (n1 + 0.5) / (length(Y) + 1.5)
-    pc_sm <- (nc + 0.5) / (length(Y) + 1.5)
-    beta_p0_init <- c(log(p0_sm / pc_sm), rep(0, ncol(X_p0) - 1))
-    beta_p1_init <- c(log(p1_sm / pc_sm), rep(0, ncol(X_p1) - 1))
+    beta_p0_init <- init_bound_beta(X_p0, log(((sum(Y==0) + 0.5) / (length(Y) + 1.5)) / ((sum(Y > 0 & Y < 1) + 0.5) / (length(Y) + 1.5))))
+    beta_p1_init <- init_bound_beta(X_p1, log(((sum(Y==1) + 0.5) / (length(Y) + 1.5)) / ((sum(Y > 0 & Y < 1) + 0.5) / (length(Y) + 1.5))))
   } else if (has_p0) {
-    beta_p0_init <- c(qlogis(safe_prob(p0_start)), rep(0, ncol(X_p0) - 1))
+    beta_p0_init <- init_bound_beta(X_p0, qlogis(pmin(pmax(p0_start, 1e-6), 1 - 1e-6)))
     beta_p1_init <- numeric(0)
   } else if (has_p1) {
     beta_p0_init <- numeric(0)
-    beta_p1_init <- c(qlogis(safe_prob(p1_start)), rep(0, ncol(X_p1) - 1))
+    beta_p1_init <- init_bound_beta(X_p1, qlogis(pmin(pmax(p1_start, 1e-6), 1 - 1e-6)))
   } else {
-    beta_p0_init <- numeric(0)
-    beta_p1_init <- numeric(0)
+    beta_p0_init <- numeric(0); beta_p1_init <- numeric(0)
   }
-  
-  pars <- list(beta_mu = as.numeric(beta_mu_init), beta_phi = as.numeric(beta_phi_init),
-               beta_p0 = as.numeric(beta_p0_init), beta_p1 = as.numeric(beta_p1_init),
-               u_mu = if(has_random) rep(0.0, ncol(Z_mu)) else numeric(0),
-               log_chol_re_mu_combined = as.numeric(log_chol_init))
-               
-  if(!is.null(start)) {
+
+  pars <- list(
+    beta_mu = beta_mu_init, beta_phi = beta_phi_init, beta_p0 = beta_p0_init, beta_p1 = beta_p1_init,
+    re_coef_mu = if (has_random_mu) rep(0.0, ncol(Z_mu)) else numeric(0), re_chol_par_mu = as.numeric(re_mu$re_chol_init),
+    re_coef_phi = if (has_random_phi) rep(0.0, ncol(Z_phi)) else numeric(0), re_chol_par_phi = as.numeric(re_phi$re_chol_init),
+    re_coef_p0 = if (has_random_p0) rep(0.0, ncol(Z_p0)) else numeric(0), re_chol_par_p0 = as.numeric(re_p0$re_chol_init),
+    re_coef_p1 = if (has_random_p1) rep(0.0, ncol(Z_p1)) else numeric(0), re_chol_par_p1 = as.numeric(re_p1$re_chol_init),
+    u_spatial_mu = if (has_spatial_mu) rep(0.0, sp_mu$n_regions) else numeric(0), spatial_par_mu = if (has_spatial_mu) c(log(0.30), stats::qlogis(0.50)) else numeric(0),
+    u_spatial_phi = if (has_spatial_phi) rep(0.0, sp_phi$n_regions) else numeric(0), spatial_par_phi = if (has_spatial_phi) c(log(0.30), stats::qlogis(0.50)) else numeric(0),
+    u_spatial_p0 = if (has_spatial_p0) rep(0.0, sp_p0$n_regions) else numeric(0), spatial_par_p0 = if (has_spatial_p0) c(log(0.30), stats::qlogis(0.50)) else numeric(0),
+    u_spatial_p1 = if (has_spatial_p1) rep(0.0, sp_p1$n_regions) else numeric(0), spatial_par_p1 = if (has_spatial_p1) c(log(0.30), stats::qlogis(0.50)) else numeric(0)
+  )
+
+  if (!is.null(start)) {
     pars <- utils::modifyList(pars, start)
   } else if (!is.null(control$start)) {
     pars <- utils::modifyList(pars, control$start)
   }
-  
-  dt_tmb <- list(Y = as.numeric(Y), y_class = as.integer(y_class_vec), X_mu = X_mu, X_phi = X_phi, 
-                 X_p0 = X_p0, X_p1 = X_p1, Z_mu = Z_mu, weights = weights_vec, offset_mu = offset_vec,
-                 family = as.integer(family$family_code), link = as.integer(family$link_code),
-                 tau = if(is.null(family$tau)) 0.0 else as.numeric(family$tau),
+
+  dt_tmb <- list(Y = as.numeric(Y), y_class = as.integer(y_class_vec),
+                 X_mu = X_mu, X_phi = X_phi, X_p0 = X_p0, X_p1 = X_p1, Z_mu = Z_mu, Z_phi = Z_phi, Z_p0 = Z_p0, Z_p1 = Z_p1,
+                 Z_spatial_mu = Z_spatial_mu, W_spatial_mu = W_spatial_mu, D_spatial_mu = D_spatial_mu, spatial_num_neighbors_mu = as.numeric(num_neigh_mu),
+                 Z_spatial_phi = Z_spatial_phi, W_spatial_phi = W_spatial_phi, D_spatial_phi = D_spatial_phi, spatial_num_neighbors_phi = as.numeric(num_neigh_phi),
+                 Z_spatial_p0 = Z_spatial_p0, W_spatial_p0 = W_spatial_p0, D_spatial_p0 = D_spatial_p0, spatial_num_neighbors_p0 = as.numeric(num_neigh_p0),
+                 Z_spatial_p1 = Z_spatial_p1, W_spatial_p1 = W_spatial_p1, D_spatial_p1 = D_spatial_p1, spatial_num_neighbors_p1 = as.numeric(num_neigh_p1),
+                 weights = weights_vec, offset_mu = offset_vec, family = as.integer(family$family_code),
+                 link = as.integer(family$link_code), tau = if (is.null(family$tau)) 0.0 else as.numeric(family$tau), 
                  has_p0_inflation = as.integer(has_p0), has_p1_inflation = as.integer(has_p1),
-                 has_random_effects_mu = as.integer(has_random),
-                 re_term_n_components = as.integer(re_n_comp), re_term_chol_starts = as.integer(re_chol_start),
-                 u_mu_term_starts = as.integer(u_start), n_re_levels_list_data = as.integer(n_lev_list))
+                 has_spatial_effects_mu = as.integer(has_spatial_mu), has_spatial_effects_phi = as.integer(has_spatial_phi),
+                 has_spatial_effects_p0 = as.integer(has_spatial_p0), has_spatial_effects_p1 = as.integer(has_spatial_p1),
+                 re_terms_mu = re_mu$terms,
+                 re_terms_phi = re_phi$terms,
+                 re_terms_p0 = re_p0$terms,
+                 re_terms_p1 = re_p1$terms)
+
+  random_args <- c(if (has_random_mu) "re_coef_mu", if (has_random_phi) "re_coef_phi", if (has_random_p0) "re_coef_p0", if (has_random_p1) "re_coef_p1",
+                   if (has_spatial_mu) "u_spatial_mu", if (has_spatial_phi) "u_spatial_phi", if (has_spatial_p0) "u_spatial_p0", if (has_spatial_p1) "u_spatial_p1")
+  if (length(random_args) == 0L) random_args <- NULL
   
-  fit <- unitregTMB.fit(dt_tmb, pars, random_args = if(has_random) "u_mu" else NULL,
-                        control = control, silent = !control$verbose)
-  
-  model_coef <- list(); model_std <- list()
-  random_effects_variance <- NULL
-  
-  nms_mu <- colnames(X_mu); nms_phi <- colnames(X_phi)
-  colnames_X_p0 <- if (has_p0) colnames(X_p0) else character(0)
-  colnames_X_p1 <- if (has_p1) colnames(X_p1) else character(0)
-  
+  fit <- unitregTMB.fit(dt_tmb, pars, random_args = random_args, control = control, silent = !control$verbose)
+
   raw <- fit$opt$par
-  model_coef$mu <- raw[names(raw)=="beta_mu"]; names(model_coef$mu) <- nms_mu
-  model_coef$phi <- raw[names(raw)=="beta_phi"]; names(model_coef$phi) <- nms_phi
-  if(has_p0) { model_coef$p0 <- raw[names(raw)=="beta_p0"]; names(model_coef$p0) <- colnames_X_p0 }
-  if(has_p1) { model_coef$p1 <- raw[names(raw)=="beta_p1"]; names(model_coef$p1) <- colnames_X_p1 }
-  
-  model_std$std.mu  <- rep(NA_real_, length(model_coef$mu)); names(model_std$std.mu) <- nms_mu
-  model_std$std.phi <- rep(NA_real_, length(model_coef$phi)); names(model_std$std.phi) <- nms_phi
-  if(has_p0) { model_std$std.p0 <- rep(NA_real_, length(model_coef$p0)); names(model_std$std.p0) <- colnames_X_p0 }
-  if(has_p1) { model_std$std.p1 <- rep(NA_real_, length(model_coef$p1)); names(model_std$std.p1) <- colnames_X_p1 }
-  
+  model_coef <- list(mu = raw[names(raw) == "beta_mu"], phi = raw[names(raw) == "beta_phi"])
+  names(model_coef$mu) <- colnames(X_mu); names(model_coef$phi) <- colnames(X_phi)
+  if (has_p0) { model_coef$p0 <- raw[names(raw) == "beta_p0"]; names(model_coef$p0) <- colnames(X_p0) }
+  if (has_p1) { model_coef$p1 <- raw[names(raw) == "beta_p1"]; names(model_coef$p1) <- colnames(X_p1) }
+
+  model_std <- list(std.mu = rep(NA_real_, length(model_coef$mu)), std.phi = rep(NA_real_, length(model_coef$phi)))
+  names(model_std$std.mu) <- colnames(X_mu); names(model_std$std.phi) <- colnames(X_phi)
+  if (has_p0) { model_std$std.p0 <- rep(NA_real_, length(model_coef$p0)); names(model_std$std.p0) <- colnames(X_p0) }
+  if (has_p1) { model_std$std.p1 <- rep(NA_real_, length(model_coef$p1)); names(model_std$std.p1) <- colnames(X_p1) }
+
   if (!is.null(fit$sd_report)) {
     sdr_fixed <- summary(fit$sd_report, "fixed")
-    
-    get_val <- function(pattern, expected, parameter) { 
-      idx <- grepl(pattern, rownames(sdr_fixed))
-      values <- sdr_fixed[idx, 2] 
-      if (length(values) != expected) {
-         warning("Could not safely extract ", parameter, ": expected ", expected, " values but found ", length(values), ". NAs introduced.")
-         return(rep(NA_real_, expected))
-      }
-      return(values)
+    get_val <- function(pattern, expected) {
+      idx <- grepl(pattern, rownames(sdr_fixed)); vals <- sdr_fixed[idx, 2]
+      if (length(vals) != expected) rep(NA_real_, expected) else vals
     }
-    
-    model_std$std.mu  <- get_val("^beta_mu", ncol(X_mu), "mean std errors"); names(model_std$std.mu) <- nms_mu
-    model_std$std.phi <- get_val("^beta_phi", ncol(X_phi), "phi std errors"); names(model_std$std.phi) <- nms_phi
-    if(has_p0) { model_std$std.p0 <- get_val("^beta_p0", ncol(X_p0), "p0 std errors"); names(model_std$std.p0) <- colnames_X_p0 }
-    if(has_p1) { model_std$std.p1 <- get_val("^beta_p1", ncol(X_p1), "p1 std errors"); names(model_std$std.p1) <- colnames_X_p1 }
+    model_std$std.mu <- get_val("^beta_mu$", ncol(X_mu)); names(model_std$std.mu) <- colnames(X_mu)
+    model_std$std.phi <- get_val("^beta_phi$", ncol(X_phi)); names(model_std$std.phi) <- colnames(X_phi)
+    if (has_p0) { model_std$std.p0 <- get_val("^beta_p0$", ncol(X_p0)); names(model_std$std.p0) <- colnames(X_p0) }
+    if (has_p1) { model_std$std.p1 <- get_val("^beta_p1$", ncol(X_p1)); names(model_std$std.p1) <- colnames(X_p1) }
   }
-  
-  if (has_random) {
-    fit$obj$fn(fit$opt$par)
-    
-    re_report <- fit$obj$report()
-    curr_std_idx <- 1; curr_cor_idx <- 1
-    re_variance_list <- list()
-    
-    for (t_idx in seq_len(re_info$n_re_terms)) {
-      n_comp <- re_info$re_term_n_components[t_idx]
-      grp_name <- re_info$group_var_names[t_idx]
-      cmp_names <- re_info$cnms[[t_idx]]
-      
-      term_name <- paste0(grp_name, ".", t_idx, ".", paste(cmp_names, collapse = "_"))
-      
-      p_names <- paste0("Std.Dev.", cmp_names)
-      p_est <- re_report$re_std_dev[curr_std_idx:(curr_std_idx + n_comp - 1)]
-      
-      df_re <- data.frame(Estimate = p_est, `Std. Error` = NA_real_, row.names = p_names, check.names = FALSE)
-      
-      if (n_comp > 1) {
-        n_cor <- n_comp * (n_comp - 1) / 2
-        c_mat <- outer(cmp_names, cmp_names, function(r, c) paste0("Corr(", r, ",", c, ")"))
-        c_names <- c_mat[lower.tri(c_mat)]
-        
-        c_est <- re_report$re_cor[curr_cor_idx:(curr_cor_idx + n_cor - 1)]
-        df_cor <- data.frame(Estimate = c_est, `Std. Error` = NA_real_, row.names = c_names, check.names = FALSE)
-        df_re <- rbind(df_re, df_cor)
-        curr_cor_idx <- curr_cor_idx + n_cor
-      }
-      re_variance_list[[term_name]] <- df_re
-      curr_std_idx <- curr_std_idx + n_comp
-    }
-    
-    if (!is.null(fit$sd_report)) {
-       sdr_report <- summary(fit$sd_report, "report")
-       std_se_full <- sdr_report[grepl("^re_std_dev", rownames(sdr_report)), 2]
-       cor_se_full <- if(any(grepl("^re_cor", rownames(sdr_report)))) sdr_report[grepl("^re_cor", rownames(sdr_report)), 2] else numeric(0)
-       
-       std_ptr <- 1; cor_ptr <- 1
-       for (nm in names(re_variance_list)) {
-         n_cmp <- sum(grepl("Std.Dev", rownames(re_variance_list[[nm]])))
-         re_variance_list[[nm]][1:n_cmp, "Std. Error"] <- std_se_full[std_ptr:(std_ptr + n_cmp - 1)]
-         std_ptr <- std_ptr + n_cmp
-         
-         if (nrow(re_variance_list[[nm]]) > n_cmp) {
-           n_cr <- nrow(re_variance_list[[nm]]) - n_cmp
-           re_variance_list[[nm]][(n_cmp+1):nrow(re_variance_list[[nm]]), "Std. Error"] <- cor_se_full[cor_ptr:(cor_ptr + n_cr - 1)]
-           cor_ptr <- cor_ptr + n_cr
-         }
-       }
-    }
-    random_effects_variance <- re_variance_list
-  }
-  
-  logLik_val <- -fit$opt$objective
-  npar <- length(fit$opt$par)
-  AIC_val <- 2 * npar - 2 * logLik_val
-  BIC_val <- log(nrow(clean_data)) * npar - 2 * logLik_val
-  
-  eta_final <- drop(X_mu %*% model_coef$mu + offset_vec)
-  
-  if (has_random) {
-    par_full <- fit$obj$env$parList(x = fit$opt$par, par = fit$obj$env$last.par)  
-    u_vec <- par_full$u_mu
-    eta_final <- eta_final + as.vector(Z_mu %*% u_vec)
-  }
-  
-  linkobj <- stats::make.link(family$link_r_name)
-  fit_vals <- list(conditional = linkobj$linkinv(eta_final))
 
-  res <- list(obj = fit$obj, 
-              opt = fit$opt, 
-              sd_report = fit$sd_report, 
-              call = cl, 
-              formula = formula,
-              phi.formula = phi.formula, 
-              p0.formula = p0.formula, 
-              p1.formula = p1.formula,
-              data = data, 
-              Y = Y, 
-              model = mf, 
-              terms = mt, 
-              family = family$name, 
-              family_object = family, 
-              link.mu = linkobj, 
-              nobs = nrow(clean_data), 
-              has_p0 = has_p0, 
-              has_p1 = has_p1,
-              has_random_effects_mu = has_random, 
-              re_info_mu=re_info, 
-              model_coef = model_coef, 
-              model_std = model_std, 
-              random_effects_variance = random_effects_variance,
-              logLik = logLik_val, 
-              AIC = AIC_val, 
-              BIC = BIC_val, 
-              npar = npar, tau = family$tau,
-              fitted.values = fit_vals, 
-              weights = weights_vec, 
-              offset = offset_vec,
-              control = control, 
-              convergence = fit$convergence, 
-              message = fit$message, 
-              max_gradient = fit$max_gradient, 
-              full_gradient = fit$full_gradient,
-              optimizer_warnings = fit$optimizer_warnings, 
-              fitting_time = fit$fitting_time)
+  re_report <- NULL; sdr_report <- NULL; sdr_rand <- NULL; par_full <- NULL
+  if (has_any_random || has_spatial_any) {
+    fit$obj$fn(fit$opt$par)
+    re_report <- fit$obj$report()
+    par_full <- fit$obj$env$parList(x = fit$opt$par, par = fit$obj$env$last.par)
+    if (!is.null(fit$sd_report)) {
+      sdr_report <- tryCatch(summary(fit$sd_report, "report"), error = function(e) NULL)
+      sdr_rand <- tryCatch(summary(fit$sd_report, "random"), error = function(e) NULL)
+    }
+  }
+
+  extract_re_variance <- function(component, re_component) {
+    if (!isTRUE(re_component$has_random_effects)) return(NULL)
+    std_name <- paste0("re_sd_", component); cor_name <- paste0("re_corr_", component)
+    std_all <- if(!is.null(re_report[[std_name]])) re_report[[std_name]] else rep(NA_real_, sum(re_component$re_info$re_term_size))
+    cor_all <- if(!is.null(re_report[[cor_name]])) re_report[[cor_name]] else numeric(0)
+    
+    std_se_full <- numeric(0); cor_se_full <- numeric(0)
+    if (!is.null(sdr_report)) {
+      idx_std <- grepl(paste0("^", std_name, "$"), rownames(sdr_report)); if(any(idx_std)) std_se_full <- sdr_report[idx_std, 2]
+      idx_cor <- grepl(paste0("^", cor_name, "$"), rownames(sdr_report)); if(any(idx_cor)) cor_se_full <- sdr_report[idx_cor, 2]
+    }
+    
+    std_ptr <- 1L; cor_ptr <- 1L; out <- list()
+    for (t_idx in seq_len(re_component$re_info$n_re_terms)) {
+      n_comp <- re_component$re_info$re_term_size[t_idx]; cmp_names <- re_component$re_info$cnms[[t_idx]]
+      term_name <- paste0(re_component$re_info$group_var_names[t_idx], ".", t_idx, ".", paste(cmp_names, collapse = "_"))
+      p_se <- if (length(std_se_full) >= std_ptr + n_comp - 1L) std_se_full[std_ptr:(std_ptr + n_comp - 1L)] else rep(NA_real_, n_comp)
+      
+      df_re <- data.frame(Estimate = std_all[std_ptr:(std_ptr + n_comp - 1L)], `Std. Error` = p_se, 
+                          row.names = paste0("Std.Dev.", cmp_names), check.names = FALSE)
+      std_ptr <- std_ptr + n_comp
+      if (n_comp > 1L) {
+        n_cor <- n_comp * (n_comp - 1L) / 2L; c_mat <- outer(cmp_names, cmp_names, function(r, c) paste0("Corr(", r, ",", c,")"))
+        c_se <- if (length(cor_se_full) >= cor_ptr + n_cor - 1L) cor_se_full[cor_ptr:(cor_ptr + n_cor - 1L)] else rep(NA_real_, n_cor)
+        df_cor <- data.frame(Estimate = cor_all[cor_ptr:(cor_ptr + n_cor - 1L)], `Std. Error` = c_se,
+                             row.names = c_mat[lower.tri(c_mat)], check.names = FALSE)
+        df_re <- rbind(df_re, df_cor); cor_ptr <- cor_ptr + n_cor
+      }
+      out[[term_name]] <- df_re
+    }
+    out
+  }
+
+  extract_spatial_results <- function(comp_name, sp_info) {
+    if (!isTRUE(sp_info$has_spatial_effects)) return(list(params = NULL, effects = NULL))
+    
+    scale_name <- paste0("spatial_scale_", comp_name); rho_name <- paste0("spatial_rho_", comp_name); u_name <- paste0("u_spatial_", comp_name)
+    scale_est <- as.numeric(re_report[[scale_name]]); rho_est <- as.numeric(re_report[[rho_name]])
+    scale_se <- NA_real_; rho_se <- NA_real_; eff_se <- rep(NA_real_, sp_info$n_regions)
+    
+    if (!is.null(sdr_report)) {
+      idx_scale <- which(rownames(sdr_report) == scale_name); if (length(idx_scale) == 1L) scale_se <- sdr_report[idx_scale, 2]
+      idx_rho <- which(rownames(sdr_report) == rho_name); if (length(idx_rho) == 1L) rho_se <- sdr_report[idx_rho, 2]
+    }
+    if (!is.null(sdr_rand)) {
+      idx_sp <- which(rownames(sdr_rand) == u_name); if (length(idx_sp) == sp_info$n_regions) eff_se <- sdr_rand[idx_sp, 2]
+    }
+    
+    params <- data.frame(Estimate = c(Scale = scale_est, Rho = rho_est), `Std. Error` = c(Scale = scale_se, Rho = rho_se), check.names = FALSE)
+    effects <- data.frame(Estimate = as.numeric(par_full[[u_name]]), `Std. Error` = eff_se, row.names = sp_info$region_levels, check.names = FALSE)
+    list(params = params, effects = effects)
+  }
+
+  random_effects_variance_by_component <- list(mu = extract_re_variance("mu", re_mu), phi = extract_re_variance("phi", re_phi),
+                                               p0 = extract_re_variance("p0", re_p0), p1 = extract_re_variance("p1", re_p1))
+  
+  sp_res_mu <- extract_spatial_results("mu", spatial_info_mu)
+  sp_res_phi <- extract_spatial_results("phi", spatial_info_phi)
+  sp_res_p0 <- extract_spatial_results("p0", spatial_info_p0)
+  sp_res_p1 <- extract_spatial_results("p1", spatial_info_p1)
+
+  random_effects_modes <- list(mu = if (has_random_mu) as.numeric(par_full$re_coef_mu) else numeric(0),
+                               phi = if (has_random_phi) as.numeric(par_full$re_coef_phi) else numeric(0),
+                               p0 = if (has_random_p0) as.numeric(par_full$re_coef_p0) else numeric(0),
+                               p1 = if (has_random_p1) as.numeric(par_full$re_coef_p1) else numeric(0))
+
+  logLik_val <- -fit$opt$objective; npar <- length(fit$opt$par)
+
+  eta_final <- drop(X_mu %*% model_coef$mu + offset_vec)
+  if (has_random_mu) eta_final <- eta_final + as.vector(Z_mu %*% par_full$re_coef_mu)
+  if (has_spatial_mu) eta_final <- eta_final + as.vector(Z_spatial_mu %*% par_full$u_spatial_mu)
+
+  res <- list(obj = fit$obj, opt = fit$opt, sd_report = fit$sd_report, call = cl,
+    formula = formula, phi.formula = phi.formula, p0.formula = p0.formula, p1.formula = p1.formula,
+    spatial.formula = spatial, spatial.phi.formula = spatial.phi, spatial.p0.formula = spatial.p0, spatial.p1.formula = spatial.p1,
+    adjacency = if (has_spatial_any) adjacency else NULL, data = data, Y = Y, model = mf, terms = mt,
+    family = family$name, family_object = family, link.mu = stats::make.link(family$link_r_name), nobs = nrow(clean_data),
+    has_p0 = has_p0, has_p1 = has_p1,
+    has_random_effects_mu = has_random_mu, has_random_effects_phi = has_random_phi, has_random_effects_p0 = has_random_p0, has_random_effects_p1 = has_random_p1,
+    has_spatial_effects_mu = has_spatial_mu, has_spatial_effects_phi = has_spatial_phi, has_spatial_effects_p0 = has_spatial_p0, has_spatial_effects_p1 = has_spatial_p1,
+    re_info_mu = re_mu$re_info, re_info_phi = re_phi$re_info, re_info_p0 = re_p0$re_info, re_info_p1 = re_p1$re_info,
+    spatial_info_mu = spatial_info_mu, spatial_info_phi = spatial_info_phi, spatial_info_p0 = spatial_info_p0, spatial_info_p1 = spatial_info_p1,
+    spatial_parameters_mu = sp_res_mu$params, spatial_effects_mu = sp_res_mu$effects,
+    spatial_parameters_phi = sp_res_phi$params, spatial_effects_phi = sp_res_phi$effects,
+    spatial_parameters_p0 = sp_res_p0$params, spatial_effects_p0 = sp_res_p0$effects,
+    spatial_parameters_p1 = sp_res_p1$params, spatial_effects_p1 = sp_res_p1$effects,
+    model_coef = model_coef, model_std = model_std,
+    random_effects_variance = random_effects_variance_by_component$mu, random_effects_variance_by_component = random_effects_variance_by_component,
+    random_effects_modes = random_effects_modes, logLik = logLik_val, AIC = 2 * npar - 2 * logLik_val, BIC = log(nrow(clean_data)) * npar - 2 * logLik_val,
+    npar = npar, tau = family$tau, fitted.values = list(conditional = stats::make.link(family$link_r_name)$linkinv(eta_final)),
+    weights = weights_vec, offset = offset_vec, control = control, convergence = fit$convergence, message = fit$message,
+    max_gradient = fit$max_gradient, full_gradient = fit$full_gradient, optimizer_warnings = fit$optimizer_warnings, fitting_time = fit$fitting_time,
+    timing = fit$timing, memory = fit$memory,
+    parallel = fit$parallel)
   
   class(res) <- "unitregTMB"
-  return(res)
+  res
 }

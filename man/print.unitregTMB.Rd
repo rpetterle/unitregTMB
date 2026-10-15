@@ -7,21 +7,27 @@
 \method{print}{unitregTMB}(x, digits = 4, ...)
 }
 \arguments{
-\item{x}{An object of class \code{unitregTMB}.}
+\item{x}{A fitted \code{unitregTMB} object.}
 
-\item{digits}{The number of significant digits to use when printing.}
+\item{digits}{Number of digits used to print estimates.}
 
-\item{...}{Further arguments passed to or from other methods.}
+\item{...}{Additional arguments, currently unused.}
 }
 \value{
-Invisibly returns the original \code{unitregTMB} object.
+Invisibly returns \code{x}.
 }
 \description{
-Prints the basic information and estimated coefficients of a fitted \code{unitregTMB} model.
+Prints the model call, fixed-effect estimates, active spatial structures, and
+basic model information. Use \code{summary()} for inferential tables and
+variance-component details.
 }
 \examples{
 \donttest{
-# fit <- unitregTMB(Y ~ educ, data = da, family = vasicek())
-# print(fit)
+set.seed(1)
+dat <- data.frame(y = plogis(rnorm(40)), x = rnorm(40))
+fit <- unitregTMB(
+  y ~ x, data = dat, family = unitgamma(model_for = "mean")
+)
+print(fit)
 }
 }

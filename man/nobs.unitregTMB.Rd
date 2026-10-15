@@ -7,13 +7,23 @@
 \method{nobs}{unitregTMB}(object, ...)
 }
 \arguments{
-\item{object}{An object of class \code{unitregTMB}.}
+\item{object}{A fitted \code{unitregTMB} object.}
 
-\item{...}{Further arguments passed to or from other methods.}
+\item{...}{Additional arguments, currently unused.}
 }
 \value{
-An integer representing the number of observations.
+The number of observations used in the fit.
 }
 \description{
-Extracts the number of observations used to fit a \code{unitregTMB} model.
+Extract the Number of Observations
+}
+\examples{
+\donttest{
+set.seed(1)
+dat <- data.frame(y = plogis(rnorm(40)), x = rnorm(40))
+fit <- unitregTMB(
+  y ~ x, data = dat, family = unitgamma(model_for = "mean")
+)
+nobs(fit)
+}
 }

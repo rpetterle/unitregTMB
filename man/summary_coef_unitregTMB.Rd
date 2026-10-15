@@ -2,49 +2,101 @@
 % Please edit documentation in R/summary_coef.R
 \name{summary_coef.unitregTMB}
 \alias{summary_coef.unitregTMB}
-\alias{print.summary_coef.unitregTMB}
-\title{Summarize Coefficients from unitregTMB Models}
+\title{Compare Fixed-Effect Coefficients from unitregTMB Models}
 \usage{
 \method{summary_coef}{unitregTMB}(object, ..., component = "mu", digits = 3, print_tex = FALSE)
-
-\method{print}{summary_coef.unitregTMB}(x, digits = NULL, print_tex = NULL, ...)
 }
 \arguments{
-\item{object}{An object of class \code{unitregTMB}.}
+\item{object}{A fitted \code{unitregTMB} object.}
 
-\item{...}{Additional \code{unitregTMB} model objects for comparison.}
+\item{...}{Additional fitted \code{unitregTMB} objects.}
 
-\item{component}{A character string or vector specifying which model components to extract. 
-Options include \code{"all"}, \code{"mu"} (location), \code{"phi"} (precision/dispersion), 
-\code{"p0"} (zero-inflation), and \code{"p1"} (one-inflation). Default is \code{"mu"}.}
+\item{component}{Character vector selecting the distributional components
+to be displayed. Available options are \code{"mu"}, \code{"phi"},
+\code{"p0"}, \code{"p1"}, and \code{"all"}. The default is \code{"mu"}.}
 
-\item{digits}{An integer specifying the number of decimal places to be used in the output. Default is 3.}
+\item{digits}{Non-negative integer giving the number of decimal places used
+when printing estimates and standard errors.}
 
-\item{print_tex}{A logical value. If \code{TRUE}, the summary prepares attributes to be 
-printed as a LaTeX table. Default is \code{FALSE}.}
-
-\item{x}{An object of class \code{summary_coef.unitregTMB}.}
+\item{print_tex}{Logical. If \code{TRUE}, a simple LaTeX table is printed.
+The default is \code{FALSE}.}
 }
 \value{
-An object of class \code{summary_coef.unitregTMB} containing a list of compiled 
-  coefficients, standard errors, and metadata for each provided model.
+An object of class \code{summary_coef.unitregTMB}. It is a list
+  with one element per fitted model, containing the model label,
+  coefficient estimates, standard errors, and coefficient names.
 }
 \description{
-Extracts, formats, and compiles fixed-effects coefficients and their corresponding 
-standard errors from one or multiple fitted \code{unitregTMB} models. This function is 
-particularly useful for generating side-by-side model comparisons.
+Extracts fixed-effect estimates and standard errors from one or more fitted
+\code{unitregTMB} models and displays them in a compact comparison table.
+}
+\details{
+The method supports the four distributional predictors available in
+\code{unitregTMB}: the location predictor \code{mu}, the precision or
+dispersion predictor \code{phi}, and the boundary-mass predictors
+\code{p0} and \code{p1}.
+
+Coefficients are internally identified by both their distributional
+component and coefficient name. For display purposes, the \code{mu.}
+prefix is omitted, whereas the \code{phi.}, \code{p0.}, and \code{p1.}
+prefixes are retained.
+
+Model labels are automatically constructed from the fitted family and
+parameterization. Mean and modal models are displayed, for example, as
+\code{"Beta (mean)"} and \code{"Beta (mode)"}. For quantile regression,
+the quantile level is used directly in the label, for example,
+\code{"Kumaraswamy (tau = 0.5)"}, without an additional
+\code{"quantile"} tag.
+
+When several models are compared and the resulting table exceeds the
+current console width, the print method automatically splits the output
+into blocks. The available width is determined by \code{getOption("width")}.
+
+Standard errors are taken from the fitted \code{unitregTMB} object.
+If a standard error is unavailable, the estimate is retained and its
+standard error is displayed as \code{---}.
 }
 \examples{
 \donttest{
-fit1 <- unitregTMB(y ~ age + bmi + gender + ipaq + regions + (1 | id), 
-                   family = vasicek(model_for = "quantile"), 
-                   data = bodyfat_long)
-fit2 <- unitregTMB(y ~ age + bmi + gender + ipaq + regions + (1 | id), 
-                   family = kumaraswamy(model_for = "quantile"),
-                   data = bodyfat_long)
- 
-summary_coef(fit1, fit2, component = "all", digits = 2)
-summary_coef(fit1, fit2, component = "mu", print_tex = TRUE)
+data("wqi", package = "unitregTMB")
+
+fit_beta <- unitregTMB(
+  y ~ location,
+  data = wqi,
+  family = beta_fam(model_for = "mean")
+)
+
+fit_ug <- unitregTMB(
+  y ~ location,
+  data = wqi,
+  family = unitgamma(model_for = "mean")
+)
+
+summary_coef(
+  fit_beta,
+  fit_ug,
+  component = "mu",
+  digits = 2
+)
+
+## Display both location and dispersion predictors
+summary_coef(
+  fit_beta,
+  fit_ug,
+  component = c("mu", "phi"),
+  digits = 3
+)
+
+## Display all available distributional predictors
+summary_coef(
+  fit_beta,
+  fit_ug,
+  component = "all",
+  digits = 2
+)
 }
 
+}
+\author{
+Ricardo Rasmussen Petterle
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/sim_unitreg.R
 \name{sim_unitreg}
 \alias{sim_unitreg}
-\title{Simulate Correlated or Independent Bounded Data}
+\title{Simulate Bounded Data for unitregTMB}
 \usage{
 sim_unitreg(
   n_id = 100,
@@ -17,93 +17,111 @@ sim_unitreg(
   beta_p0 = NULL,
   beta_p1 = NULL,
   Sigma = NULL,
+  Sigma_mu = Sigma,
+  Sigma_phi = NULL,
+  Sigma_p0 = NULL,
+  Sigma_p1 = NULL,
+  spatial = NULL,
+  spatial_phi = NULL,
+  spatial_p0 = NULL,
+  spatial_p1 = NULL,
+  adjacency = NULL,
+  spatial_scale_mu = 0.3,
+  spatial_scale_phi = 0.3,
+  spatial_scale_p0 = 0.3,
+  spatial_scale_p1 = 0.3,
+  spatial_rho_mu = 0.5,
+  spatial_rho_phi = 0.5,
+  spatial_rho_p0 = 0.5,
+  spatial_rho_p1 = 0.5,
   cov_config = list(),
   seed = NULL
 )
 }
 \arguments{
-\item{n_id}{Integer. Number of clusters/individuals. Default is 100.}
+\item{n_id}{Positive integer giving the number of primary clusters or
+individuals.}
 
-\item{n_rep}{Integer. Number of repeated measures per individual. Default is 1 (independent data).}
+\item{n_rep}{Positive integer giving the number of observations per primary
+cluster.}
 
-\item{family}{A \code{unitregTMBFamily} object specifying the distribution and links.}
+\item{family}{A \code{unitregTMBFamily} object.}
 
-\item{formula_mu}{Formula for the location parameter. Can include random effects (e.g., \code{~ x1 + (1 + x1 | id)}).}
+\item{formula_mu, formula_phi, formula_p0, formula_p1}{One-sided formulas for
+the four distributional predictors. Ordinary random effects use
+lme4-style terms such as \code{(1 + time | id)}. \code{NULL},
+\code{~0}, or \code{~-1} disables \code{p0} or \code{p1}.}
 
-\item{formula_phi}{Formula for the precision/dispersion parameter. Default is \code{~ 1}.}
+\item{beta_mu, beta_phi, beta_p0, beta_p1}{Fixed-effect coefficient vectors on
+the corresponding link scales.}
 
-\item{formula_p0}{Formula for the zero-inflation parameter. Default is \code{~ 0} (no inflation).}
+\item{Sigma}{Backward-compatible alias for \code{Sigma_mu}.}
 
-\item{formula_p1}{Formula for the one-inflation parameter. Default is \code{~ 0} (no inflation).}
+\item{Sigma_mu, Sigma_phi, Sigma_p0, Sigma_p1}{Random-effect covariance
+matrices. For multiple random-effects terms, supply a list with one
+covariance matrix per term.}
 
-\item{beta_mu}{Numeric vector of fixed effect coefficients for \code{mu}.}
+\item{spatial, spatial_phi, spatial_p0, spatial_p1}{Optional one-sided formulas
+identifying the areal region for proper CAR effects.}
 
-\item{beta_phi}{Numeric vector of fixed effect coefficients for \code{phi}.}
+\item{adjacency}{Adjacency matrix shared by requested CAR effects.}
 
-\item{beta_p0}{Numeric vector of fixed effect coefficients for \code{p0}. Default is \code{NULL}.}
+\item{spatial_scale_mu, spatial_scale_phi, spatial_scale_p0, spatial_scale_p1}{Positive CAR scale parameters.}
 
-\item{beta_p1}{Numeric vector of fixed effect coefficients for \code{p1}. Default is \code{NULL}.}
+\item{spatial_rho_mu, spatial_rho_phi, spatial_rho_p0, spatial_rho_p1}{Proper
+CAR dependence parameters. Values must be at least zero and below
+\code{1 - 1e-8}, matching the current TMB parameterization.}
 
-\item{Sigma}{Covariance matrix for the random effects in \code{mu}. Required if \code{formula_mu} contains random terms.}
+\item{cov_config}{Named list defining generated covariates. Supported
+distributions are \code{"normal"}, \code{"binomial"}, \code{"uniform"},
+\code{"poisson"}, \code{"factor"}, and \code{"categorical"}.}
 
-\item{cov_config}{A named list defining the distributions of the covariates present in the formulas. 
-Supported distributions: \code{"normal"} (mean, sd), \code{"binomial"} (size, prob), 
-\code{"uniform"} (min, max), and \code{"poisson"} (lambda). If a covariate is not specified, 
-it defaults to a standard normal distribution.}
-
-\item{seed}{Optional integer to set the random seed for reproducibility.}
+\item{seed}{Optional finite numeric random-number seed.}
 }
 \value{
-A \code{data.frame} containing the generated cluster indicator (\code{id}), 
-  all the simulated covariates, and the simulated response variable (\code{Y}).
+A data frame containing \code{id}, generated covariates, and response
+  \code{Y}. Generated ordinary and spatial latent effects, linear predictors,
+  and distributional parameters are stored as attributes.
 }
 \description{
-Simulates responses from the distributions supported by \code{unitregTMB}. 
-The function allows the specification of fixed effects for all linear predictors 
-(\code{mu}, \code{phi}, \code{p0}, \code{p1}), as well as correlated random effects 
-for the location parameter (\code{mu}) to simulate longitudinal/clustered data. 
-It can also auto-generate covariates based on user-defined statistical distributions.
+Simulates independent, clustered, longitudinal, or areal bounded responses
+from distributions supported by \code{unitregTMB}. Fixed effects, ordinary
+Gaussian random effects, zero/one augmentation, and proper CAR spatial
+effects may be specified independently in the \code{mu}, \code{phi},
+\code{p0}, and \code{p1} predictors.
+}
+\details{
+Continuous observations are generated only for observations allocated to the
+continuous mixture component. No arbitrary clipping such as \code{1e-10} is
+applied. Exact floating-point zero or one returned by a continuous random
+generator is moved only to machine-representable interior values.
+
+The proper CAR field uses precision
+\deqn{
+Q = D - \rho W
+}
+and covariance \eqn{\mathrm{scale}^2 Q^{-1}}, matching the current
+\code{unitregTMB} spatial likelihood.
 }
 \examples{
 \donttest{
-# 1. Simulate Independent Data (No Random Effects)
-# vasicek mean model with zero-inflation
-sim_indep <- sim_unitreg(
-  n_id = 500, n_rep = 1,
-  family = vasicek(model_for = "mean"),
-  formula_mu = ~ cont_var + bin_var,
-  formula_p0 = ~ 1,
-  beta_mu = c(0.5, -0.2, 0.8), # Intercept, cont_var, bin_var
-  beta_phi = c(2.0),           # Intercept (log scale)
-  beta_p0 = c(-1.5),           # Intercept (logit scale, approx 18\% zeros)
-  cov_config = list(
-    cont_var = list(dist = "normal", mean = 10, sd = 2),
-    bin_var  = list(dist = "binomial", size = 1, prob = 0.5)
-  ),
+d <- sim_unitreg(
+  n_id = 20,
+  n_rep = 4,
+  family = beta_fam(model_for = "mean"),
+  formula_mu = ~ x + (1 | id),
+  formula_phi = ~ 1,
+  beta_mu = c(-0.5, 0.8),
+  beta_phi = log(20),
+  Sigma_mu = matrix(0.30^2),
+  cov_config = list(x = list(dist = "normal")),
   seed = 123
 )
-head(sim_indep)
 
-# 2. Simulate Correlated Longitudinal Data (Random Intercept & Slope)
-# beta mean model
-Sigma_matrix <- matrix(c(0.50, 0.15, 
-                         0.15, 0.20), nrow = 2) # Covariance matrix for (Intercept) and time
-
-sim_long <- sim_unitreg(
-  n_id = 100, n_rep = 4,
-  family = beta_fam(model_for = "mean"),
-  formula_mu = ~ trt + time + (1 + time | id),
-  formula_phi = ~ trt,
-  beta_mu = c(-0.5, 1.2, -0.3), # Intercept, trt, time
-  beta_phi = c(1.5, 0.5),       # Intercept, trt
-  Sigma = Sigma_matrix,
-  cov_config = list(
-    trt  = list(dist = "binomial", size = 1, prob = 0.5),
-    time = list(dist = "poisson", lambda = 2)
-  ),
-  seed = 42
-)
-head(sim_long)
+head(d)
 }
 
+}
+\author{
+Ricardo Rasmussen Petterle
 }

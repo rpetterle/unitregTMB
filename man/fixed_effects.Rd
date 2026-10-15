@@ -10,13 +10,32 @@ fixed_effects(object, ...)
 \method{fixed_effects}{unitregTMB}(object, ...)
 }
 \arguments{
-\item{object}{A fitted object of class "unitregTMB".}
+\item{object}{A fitted \code{unitregTMB} object.}
 
-\item{...}{Additional arguments.}
+\item{...}{Additional arguments, currently unused.}
 }
 \value{
-A numeric vector of fixed effects.
+A named list with fixed effects for the active distributional
+  predictors.
 }
 \description{
-Generic function to extract fixed effects from fitted models.
+Generic function for extracting fixed effects.
+}
+\examples{
+\donttest{
+set.seed(1)
+dat <- data.frame(y = plogis(rnorm(40)), x = rnorm(40))
+fit <- unitregTMB(
+  y ~ x, data = dat, family = unitgamma(model_for = "mean")
+)
+fixed_effects(fit)
+}
+\donttest{
+set.seed(1)
+dat <- data.frame(y = plogis(rnorm(40)), x = rnorm(40))
+fit <- unitregTMB(
+  y ~ x, data = dat, family = unitgamma(model_for = "mean")
+)
+fixed_effects(fit)
+}
 }

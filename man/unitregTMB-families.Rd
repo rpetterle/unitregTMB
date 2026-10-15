@@ -17,39 +17,72 @@
 \usage{
 beta_fam(model_for = c("mean", "mode"), link = "logit")
 
-simplex(model_for = c("mean"), link = "logit")
+simplex(model_for = "mean", link = "logit")
 
 vasicek(model_for = c("mean", "quantile"), link = "logit", tau = 0.5)
 
 unitgamma(model_for = c("mean", "mode"), link = "logit")
 
-bessel(model_for = c("mean"), link = "logit")
+bessel(model_for = "mean", link = "logit")
 
 kumaraswamy(model_for = c("mode", "quantile"), link = "logit", tau = 0.5)
 
 unitgompertz(model_for = c("mode", "quantile"), link = "logit", tau = 0.5)
 
-unitweibull(model_for = c("quantile"), link = "logit", tau = 0.5)
+unitweibull(model_for = "quantile", link = "logit", tau = 0.5)
 
-johnsonsb(model_for = c("quantile"), link = "logit", tau = 0.5)
+johnsonsb(model_for = "quantile", link = "logit", tau = 0.5)
 
-ashw(model_for = c("quantile"), link = "logit", tau = 0.5)
+ashw(model_for = "quantile", link = "logit", tau = 0.5)
 
-ubs(model_for = c("quantile"), link = "logit", tau = 0.5)
+ubs(model_for = "quantile", link = "logit", tau = 0.5)
 }
 \arguments{
-\item{model_for}{Character string indicating the parameterization to be used 
-(e.g., \code{"mean"}, \code{"mode"}, or \code{"quantile"}).}
+\item{model_for}{Character string specifying the modeled location parameter.
+Available choices depend on the family and include \code{"mean"},
+\code{"mode"}, and \code{"quantile"}.}
 
-\item{link}{Character string specifying the link function for the location parameter. 
-Supported links are \code{"logit"}, \code{"probit"}, \code{"cloglog"}, and \code{"cauchit"}.}
+\item{link}{Character string specifying the link for the modeled location
+parameter. Supported links are \code{"logit"}, \code{"probit"},
+\code{"cloglog"}, and \code{"cauchit"}.}
 
-\item{tau}{Numeric value between 0 and 1 indicating the quantile to be modeled 
-(only applicable when \code{model_for = "quantile"}). Default is 0.5.}
+\item{tau}{Numeric quantile level in \eqn{(0,1)} used when
+\code{model_for = "quantile"}. The default is \code{0.5}.}
 }
 \value{
-An object of class \code{unitregTMBFamily} containing the family details and link functions.
+An object of class \code{unitregTMBFamily} containing the family
+  code, parameterization, location link, dispersion/shape link, and quantile
+  level when applicable.
 }
 \description{
-Functions to specify the distribution family and link function for \code{unitregTMB} models.
+Constructors for the continuous distributions implemented in
+\code{unitregTMB}. Depending on the family, the location parameter can
+represent the mean, mode, or a selected quantile of the continuous component.
+}
+\details{
+The Beta family supports mean and mode parameterizations. Simplex and Bessel
+support the mean parameterization. Vasicek supports mean and quantile
+parameterizations and uses a logit link for its dispersion/shape parameter.
+Unit-Gamma supports mean and mode parameterizations. Kumaraswamy and
+Unit-Gompertz support mode and quantile parameterizations. Unit-Weibull,
+Johnson SB, ASHW, and Unit-Birnbaum-Saunders are quantile-parameterized.
+}
+\examples{
+beta_fam(model_for = "mean")
+beta_fam(model_for = "mode", link = "probit")
+simplex()
+vasicek(model_for = "mean")
+vasicek(model_for = "quantile", tau = 0.25)
+unitgamma(model_for = "mean")
+unitgamma(model_for = "mode")
+bessel()
+kumaraswamy(model_for = "mode")
+kumaraswamy(model_for = "quantile", tau = 0.5)
+unitgompertz(model_for = "mode")
+unitgompertz(model_for = "quantile", tau = 0.75)
+unitweibull(tau = 0.5)
+johnsonsb(tau = 0.5)
+ashw(tau = 0.5)
+ubs(tau = 0.5)
+
 }

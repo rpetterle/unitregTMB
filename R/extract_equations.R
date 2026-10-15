@@ -1,269 +1,353 @@
-#' @name extract_equations.unitregTMB
-#' 
-#' @title Extract Model Equations in LaTeX Format for unitregTMB
-#' 
-#' @description Generates formatted LaTeX equations for fitted unitregTMB models, 
-#' supporting both symbolic and numeric representation. It automatically identifies 
-#' random effects and assigns proper indices to longitudinal/repeated measures.
-#' 
-#' @param object A fitted unitregTMB object.
-#' @param mode Character; "symbolic" (default) for theoretical equations with greek letters, 
-#'        or "numeric" for fitted equations with estimated coefficients.
-#' @param component Character; specifies which submodel to extract: "mu", "phi", "p0", "p1", or "all".
-#' @param link_style Character; "name" (default) to print the link function as text (e.g., probit, cauchit), 
-#'        or "inverse" to print the mathematical inverse function (e.g., \\Phi^{-1}).
-#' @param grouping_var Character; a substring matching the name of the repeated measures variable 
-#'        (e.g., "tooth"). This variable will receive the compound index {ij}. Defaults to NULL.
-#' @param digits Integer; number of decimal places for numeric mode.
-#' @param custom_labels Named character vector; pairs of old variable names and desired new labels.
-#' @param index_labels Logical; if TRUE (default), appends the domain bounds (e.g., for i = 1,...,N).
-#' @param ... Additional arguments passed to methods.
-#' 
-#' @return A character string (invisibly) containing the LaTeX code for the equations. 
-#'    The code is also printed to the console.
-#' 
+#' Extract Model Equations in LaTeX Format for unitregTMB
+#'
+#' @description
+#' Generates LaTeX equations for fitted \code{unitregTMB} models in symbolic or
+#' numeric form. Equations can be extracted for the location, dispersion/shape,
+#' zero-inflation, and one-inflation predictors, including ordinary random
+#' effects and proper CAR spatial effects when present.
+#'
+#' @param object A fitted \code{unitregTMB} object.
+#' @param mode Character string specifying \code{"symbolic"} or
+#'   \code{"numeric"} output.
+#' @param component Character string specifying \code{"mu"}, \code{"phi"},
+#'   \code{"p0"}, \code{"p1"}, or \code{"all"}.
+#' @param link_style Character string. \code{"name"} prints the link name;
+#'   \code{"inverse"} prints its mathematical expression.
+#' @param grouping_var Optional character string identifying the grouping
+#'   variable used to display compound \eqn{ij} indexing for predictors with
+#'   ordinary random effects.
+#' @param digits Non-negative integer giving the number of decimal places used
+#'   in numeric mode.
+#' @param custom_labels Optional named character vector mapping model-matrix
+#'   column names to custom LaTeX labels.
+#' @param index_labels Logical; if \code{TRUE}, append observation or cluster
+#'   indexing information.
+#' @param ... Additional arguments, currently unused.
+#'
+#' @details
+#' For models containing both zero and one augmentation, the boundary
+#' predictors are represented using the multinomial-logit parameterization
+#' employed by the TMB likelihood, with the continuous component as the
+#' baseline category. Numeric equations use the fitted fixed-effect
+#' coefficients stored in the fitted model object. Random and spatial effects
+#' are represented symbolically through their conditional modes.
+#'
+#' @return A character string containing the LaTeX \code{align} environment,
+#'   returned invisibly after being printed to the console.
+#'
 #' @examples
 #' \donttest{
-#' # Assuming 'fit' is a fitted unitregTMB model:
-#' # Extract the theoretical symbolic equation for the mean (mu)
-#' # extract_equations(fit, mode = "symbolic", component = "mu")
-#' 
-#' # Extract the numeric fitted equation for all components with custom labels
-#' # eq <- extract_equations(fit, mode = "numeric", component = "all", 
-#' #                         custom_labels = c("educHS+" = "HighSchool"))
+#' set.seed(1)
+#' dat <- data.frame(y = plogis(rnorm(40)), x = rnorm(40))
+#' fit <- unitregTMB(
+#'   y ~ x,
+#'   phi.formula = ~ x,
+#'   data = dat,
+#'   family = unitgamma(model_for = "mean"),
+#' )
+#' regcore::extract_equations(fit, mode = "symbolic", component = "all")
+#' regcore::extract_equations(fit, mode = "numeric", component = "mu")
 #' }
+#'
+#' @importFrom regcore extract_equations
 #' @rdname extract_equations_unitregTMB
 #' @export
-extract_equations.unitregTMB <- function(object, mode = c("symbolic", "numeric"), 
-                                         component = c("mu", "phi", "p0", "p1", "all"), 
-                                         link_style = c("name", "inverse"),
-                                         grouping_var = NULL, digits = 2, 
-                                         custom_labels = NULL, index_labels = TRUE, ...) {
-  
+extract_equations.unitregTMB <- function(
+    object,
+    mode = c("symbolic", "numeric"),
+    component = c("mu", "phi", "p0", "p1", "all"),
+    link_style = c("name", "inverse"),
+    grouping_var = NULL,
+    digits = 2,
+    custom_labels = NULL,
+    index_labels = TRUE,
+    ...) {
+
+  if (!inherits(object, "unitregTMB")) {
+    stop("'object' must inherit from 'unitregTMB'.", call. = FALSE)
+  }
+
   mode <- match.arg(mode)
   component <- match.arg(component)
   link_style <- match.arg(link_style)
-  
-  sd_rep <- if (!is.null(object$sd_report)) object$sd_report else object$sdreport
-  if (is.null(sd_rep) && mode == "numeric") {
-    stop("Model must be fitted with standard errors (sdreport) to extract numeric equations.")
+
+  if (!is.numeric(digits) || length(digits) != 1L || !is.finite(digits) || digits < 0 || digits != as.integer(digits)) {
+    stop("'digits' must be a single non-negative integer.", call. = FALSE)
   }
-  
-  link_name <- "logit"
-  if (!is.null(object$link.mu) && !is.null(object$link.mu$name)) {
-    link_name <- object$link.mu$name[1]
-  } else if (is.list(object$family)) {
-    if (!is.null(object$family$link_r_name)) link_name <- object$family$link_r_name[1]
-    else if (!is.null(object$family$link)) link_name <- object$family$link[1]
+  digits <- as.integer(digits)
+
+  if (!is.logical(index_labels) || length(index_labels) != 1L || is.na(index_labels)) {
+    stop("'index_labels' must be TRUE or FALSE.", call. = FALSE)
   }
-  
-  has_re <- isTRUE(object$has_random_effects_mu) || isTRUE(object$obj$env$data$has_random_effects_mu == 1)
-  
-  lhs_idx <- if (has_re && !is.null(grouping_var)) "{ij}" else "i"
-  mu_symbol <- sprintf("\\mu_{%s}", lhs_idx)
-  
-  get_link_latex <- function(lnk, param_name) {
-    if (is.null(lnk) || length(lnk) != 1) lnk <- "logit"
-    
+
+  if (!is.null(grouping_var) && (!is.character(grouping_var) || length(grouping_var) != 1L || is.na(grouping_var) || !nzchar(grouping_var))) {
+    stop("'grouping_var' must be NULL or a single non-empty character string.", call. = FALSE)
+  }
+
+  if (!is.null(custom_labels) && (!is.character(custom_labels) || is.null(names(custom_labels)) || any(!nzchar(names(custom_labels))))) {
+    stop("'custom_labels' must be a named character vector.", call. = FALSE)
+  }
+
+  components <- c("mu", "phi", "p0", "p1")
+  dat <- tryCatch(object$obj$env$data, error = function(e) NULL)
+  if (is.null(dat)) dat <- list()
+
+  `%||%` <- function(x, y) {
+    if (!is.null(x) && length(x) > 0L && !all(is.na(x))) x else y
+  }
+
+  object_flag <- function(name) {
+    x <- object[[name]]
+    !is.null(x) && length(x) > 0L && isTRUE(as.logical(x[1L]))
+  }
+
+  data_flag <- function(name) {
+    x <- dat[[name]]
+    !is.null(x) && length(x) > 0L && isTRUE(as.logical(x[1L]))
+  }
+
+  has_p0 <- object_flag("has_p0") || data_flag("has_p0_inflation")
+  has_p1 <- object_flag("has_p1") || data_flag("has_p1_inflation")
+
+  active_component <- function(comp) {
+    switch(comp, mu = TRUE, phi = TRUE, p0 = has_p0, p1 = has_p1, FALSE)
+  }
+
+  has_re <- function(comp) {
+    object_flag(paste0("has_random_effects_", comp))
+  }
+
+  has_spatial <- function(comp) {
+    object_flag(paste0("has_spatial_effects_", comp)) || data_flag(paste0("has_spatial_effects_", comp))
+  }
+
+  formula_for <- function(comp) {
+    switch(comp, mu = object$formula, phi = object$phi.formula, p0 = object$p0.formula, p1 = object$p1.formula)
+  }
+
+  family_object <- if (is.list(object$family_object)) object$family_object else list()
+
+  mu_link <- NULL
+  if (!is.null(object$link.mu) && is.list(object$link.mu)) mu_link <- object$link.mu$name
+  mu_link <- mu_link %||% family_object$link_r_name %||% "logit"
+  mu_link <- as.character(mu_link[1L])
+
+  phi_link <- family_object$phi_link_r_name %||% "log"
+  if (is.list(phi_link)) phi_link <- phi_link$name
+  phi_link <- as.character(phi_link[1L])
+
+  link_for <- function(comp) {
+    switch(
+      comp,
+      mu = mu_link,
+      phi = phi_link,
+      p0 = if (has_p0 && has_p1) "bivariate_logit" else "logit",
+      p1 = if (has_p0 && has_p1) "bivariate_logit" else "logit"
+    )
+  }
+
+  component_index <- function(comp) {
+    if (has_re(comp) && !is.null(grouping_var)) "ij" else "i"
+  }
+
+  parameter_symbol <- function(comp) {
+    idx <- component_index(comp)
+    switch(
+      comp,
+      mu = sprintf("\\mu_{%s}", idx),
+      phi = sprintf("\\phi_{%s}", idx),
+      p0 = sprintf("p_{0,%s}", idx),
+      p1 = sprintf("p_{1,%s}", idx)
+    )
+  }
+
+  get_link_latex <- function(comp) {
+    lnk <- link_for(comp)
+    par_name <- parameter_symbol(comp)
+
+    if (lnk == "bivariate_logit") {
+      idx <- component_index(comp)
+      denom <- sprintf("1-p_{0,%s}-p_{1,%s}", idx, idx)
+      num <- if (comp == "p0") sprintf("p_{0,%s}", idx) else sprintf("p_{1,%s}", idx)
+      return(sprintf("\\log\\left(\\frac{%s}{%s}\\right)", num, denom))
+    }
+
     if (link_style == "name") {
-      if (lnk == "log") return(sprintf("\\log(%s)", param_name))
-      return(sprintf("\\mathrm{%s}(%s)", lnk, param_name))
-    } else {
-      switch(lnk,
-             "logit"   = sprintf("\\log\\left(\\frac{%s}{1 - %s}\\right)", param_name, param_name),
-             "probit"  = sprintf("\\Phi^{-1}(%s)", param_name),
-             "cloglog" = sprintf("\\log(-\\log(1-%s))", param_name),
-             "cauchit" = sprintf("\\tan(\\pi(%s - 0.5))", param_name),
-             "log"     = sprintf("\\log(%s)", param_name),
-             sprintf("\\mathrm{%s}(%s)", lnk, param_name) # Fallback
-      )
+      if (lnk == "log") return(sprintf("\\log(%s)", par_name))
+      return(sprintf("\\mathrm{%s}(%s)", lnk, par_name))
     }
+
+    switch(
+      lnk,
+      logit = sprintf("\\log\\left(\\frac{%s}{1-%s}\\right)", par_name, par_name),
+      probit = sprintf("\\Phi^{-1}(%s)", par_name),
+      cloglog = sprintf("\\log[-\\log(1-%s)]", par_name),
+      cauchit = sprintf("\\tan\\{\\pi(%s-0.5)\\}", par_name),
+      log = sprintf("\\log(%s)", par_name),
+      sprintf("\\mathrm{%s}(%s)", lnk, par_name)
+    )
   }
-  
-  get_idx <- function(v) {
-    if (has_re && !is.null(grouping_var) && grepl(grouping_var, v)) return("{ij}")
-    return("i")
+
+  coef_symbol <- c(mu = "\\beta", phi = "\\psi", p0 = "\\gamma", p1 = "\\delta")
+
+  format_var_math <- function(v) {
+    if (!is.null(custom_labels) && v %in% names(custom_labels)) return(paste0("{", custom_labels[[v]], "}"))
+    parts <- strsplit(v, "_", fixed = TRUE)[[1L]]
+    if (length(parts) == 1L) return(sprintf("\\mathrm{%s}", parts[1L]))
+    out <- sprintf("\\mathrm{%s}", parts[1L])
+    if (length(parts) > 1L) {
+      for (j in 2:length(parts)) out <- paste0(out, "_{\\mathrm{", parts[j], "}}")
+    }
+    paste0("{", out, "}")
   }
-  
-  chunk_terms <- function(terms_vec, chunk_size = 3, is_numeric = FALSE) {
-    if (length(terms_vec) == 0) return("")
-    chunks <- split(terms_vec, ceiling(seq_along(terms_vec) / chunk_size))
-    res <- ""
-    for (i in seq_along(chunks)) {
-      if (is_numeric) {
-        line <- paste(chunks[[i]], collapse = " ")
-        if (i == 1) res <- line else res <- paste0(res, " \\nonumber \\\\ \n  & \\quad ", line)
+
+  variable_index <- function(comp) component_index(comp)
+
+  chunk_symbolic <- function(terms, chunk_size = 3L) {
+    if (!length(terms)) return("0")
+    chunks <- split(terms, ceiling(seq_along(terms) / chunk_size))
+    out <- paste(chunks[[1L]], collapse = " + ")
+    if (length(chunks) > 1L) {
+      for (j in 2:length(chunks)) {
+        out <- paste0(out, " + \\nonumber \\\\ \n  & \\quad + ", paste(chunks[[j]], collapse = " + "))
+      }
+    }
+    out
+  }
+
+  chunk_numeric <- function(terms, chunk_size = 3L) {
+    if (!length(terms)) return("0")
+    chunks <- split(terms, ceiling(seq_along(terms) / chunk_size))
+    out <- paste(chunks[[1L]], collapse = " ")
+    if (length(chunks) > 1L) {
+      for (j in 2:length(chunks)) {
+        out <- paste0(out, " \\nonumber \\\\ \n  & \\quad ", paste(chunks[[j]], collapse = " "))
+      }
+    }
+    out
+  }
+
+  fixed_columns <- function(comp) {
+    b <- object$model_coef[[comp]]
+    if (!is.null(b) && length(b) && !is.null(names(b))) return(names(b))
+    X <- dat[[paste0("X_", comp)]]
+    if (!is.null(X) && !is.null(colnames(X))) return(colnames(X))
+    form <- formula_for(comp)
+    if (is.null(form)) return(character())
+    fixed_form <- reformulas::nobars(form)
+    colnames(stats::model.matrix(fixed_form, object$model))
+  }
+
+  symbolic_rhs <- function(comp) {
+    cols <- fixed_columns(comp)
+    sym <- coef_symbol[[comp]]
+    rhs <- character()
+
+    if (length(cols)) {
+      for (k in seq_along(cols)) {
+        term <- cols[k]
+        if (identical(term, "(Intercept)")) {
+          rhs <- c(rhs, sprintf("%s_{%d}", sym, k - 1L))
+        } else {
+          rhs <- c(rhs, sprintf("%s_{%d}~%s_{%s}", sym, k - 1L, format_var_math(term), variable_index(comp)))
+        }
+      }
+    }
+
+    if (has_re(comp)) {
+      rhs <- c(rhs, sprintf("\\mathbf{z}_{\\mathrm{%s},%s}^{\\top}\\mathbf{u}_{\\mathrm{%s}}", comp, component_index(comp), comp))
+    }
+
+    if (has_spatial(comp)) {
+      rhs <- c(rhs, sprintf("s_{\\mathrm{%s},r(%s)}", comp, component_index(comp)))
+    }
+
+    rhs
+  }
+
+  numeric_rhs <- function(comp) {
+    b <- object$model_coef[[comp]]
+    if (is.null(b)) stop("Fixed-effect estimates are not available for component '", comp, "'.", call. = FALSE)
+
+    term_names <- names(b)
+    if (is.null(term_names) || length(term_names) != length(b)) {
+      X <- dat[[paste0("X_", comp)]]
+      if (!is.null(X) && !is.null(colnames(X)) && ncol(X) == length(b)) {
+        term_names <- colnames(X)
       } else {
-        line <- paste(chunks[[i]], collapse = " + ")
-        if (i == 1) res <- line else res <- paste0(res, " + \\nonumber \\\\ \n  & \\quad + ", line)
+        term_names <- paste0("x", seq_along(b) - 1L)
       }
     }
-    return(res)
+
+    rhs <- character()
+    for (k in seq_along(b)) {
+      value <- unname(b[k])
+      term <- term_names[k]
+      if (identical(term, "(Intercept)")) {
+        piece <- sprintf(paste0("%.", digits, "f"), value)
+      } else {
+        abs_value <- sprintf(paste0("%.", digits, "f"), abs(value))
+        sign <- if (value < 0) "-" else "+"
+        piece <- sprintf("%s %s~%s_{%s}", sign, abs_value, format_var_math(term), variable_index(comp))
+      }
+      rhs <- c(rhs, piece)
+    }
+
+    if (length(rhs) && !identical(term_names[1L], "(Intercept)")) rhs[1L] <- sub("^\\+ ", "", rhs[1L])
+
+    if (has_re(comp)) {
+      rhs <- c(rhs, sprintf("+ \\mathbf{z}_{\\mathrm{%s},%s}^{\\top}\\widehat{\\mathbf{u}}_{\\mathrm{%s}}", comp, component_index(comp), comp))
+    }
+
+    if (has_spatial(comp)) {
+      rhs <- c(rhs, sprintf("+ \\widehat{s}_{\\mathrm{%s},r(%s)}", comp, component_index(comp)))
+    }
+
+    rhs
   }
 
-  format_var_math <- function(v, custom_labels) {
-    if (!is.null(custom_labels) && v %in% names(custom_labels)) {
-      return(paste0("{", custom_labels[[v]], "}"))
-    }
-    parts <- strsplit(v, "_", fixed = TRUE)[[1]]
-    if (length(parts) == 0) return("")
-    if (length(parts) == 1) return(sprintf("\\mathrm{%s}", parts))
-    res <- sprintf("\\mathrm{%s}", parts[1])
-    for (p in 2:length(parts)) res <- paste0(res, "_{\\mathrm{", parts[p], "}")
-    res <- paste0(res, paste(rep("}", length(parts) - 1), collapse = ""))
-    return(paste0("{", res, "}"))
+  comps_to_print <- if (component == "all") components else component
+  comps_to_print <- comps_to_print[vapply(comps_to_print, active_component, logical(1))]
+  if (!length(comps_to_print)) stop("The requested component is not active in this model.", call. = FALSE)
+
+  lines_out <- character()
+
+  for (comp in comps_to_print) {
+    lhs <- get_link_latex(comp)
+    rhs <- if (mode == "symbolic") chunk_symbolic(symbolic_rhs(comp)) else chunk_numeric(numeric_rhs(comp))
+    lines_out <- c(lines_out, sprintf("  %s &= %s \\nonumber", lhs, rhs))
   }
 
-  comps_to_print <- if (component == "all") c("mu", "phi", "p0", "p1") else component
+  for (comp in comps_to_print) {
+    if (has_re(comp)) {
+      lines_out <- c(lines_out, sprintf("  & \\quad \\mathbf{u}_{\\mathrm{%s}} \\sim N(\\mathbf{0}, \\mathbf{\\Sigma}_{\\mathrm{%s}}) \\nonumber", comp, comp))
+    }
+  }
 
-  lines_out <- c()
-  
-  if (mode == "symbolic") {
-    
-    if ("mu" %in% comps_to_print) {
-      fix_form <- reformulas::nobars(object$formula)
-      mt <- stats::terms(fix_form)
-      term_labels <- attr(mt, "term.labels")
-      
-      re_names <- character(0)
-      if (has_re && !is.null(object$re_info_mu$cnms)) {
-        re_names <- object$re_info_mu$cnms[[1]]
-      }
-      
-      rhs_mu <- c()
-      b_idx <- 0
-      
-      if (attr(mt, "intercept") == 1) {
-        if ("(Intercept)" %in% re_names) {
-          rhs_mu <- c(rhs_mu, sprintf("(\\beta_{%d} + u_{%di})", b_idx, b_idx))
-        } else {
-          rhs_mu <- c(rhs_mu, sprintf("\\beta_{%d}", b_idx))
-        }
-        b_idx <- b_idx + 1
-      }
-      
-      for (var in term_labels) {
-        safe_var <- format_var_math(var, custom_labels)
-        v_idx <- get_idx(var)
-        
-        if (var %in% re_names) {
-          rhs_mu <- c(rhs_mu, sprintf("(\\beta_{%d} + u_{%di})~%s_{%s}", b_idx, b_idx, safe_var, v_idx))
-        } else {
-          rhs_mu <- c(rhs_mu, sprintf("\\beta_{%d}~%s_{%s}", b_idx, safe_var, v_idx))
-        }
-        b_idx <- b_idx + 1
-      }
-      
-      lhs_mu <- get_link_latex(link_name, mu_symbol)
-      lines_out <- c(lines_out, sprintf("  %s &= %s, \\nonumber", lhs_mu, chunk_terms(rhs_mu, chunk_size = 3, is_numeric = FALSE)))
-    }
-    
-    components_sym <- list(
-      phi = list(name = "phi", lhs = sprintf("\\log(\\phi_{%s})", lhs_idx), form = object$phi.formula, sym = "\\psi"),
-      p0  = list(name = "p0",  lhs = sprintf("\\mathrm{logit}(p_{0%s})", lhs_idx), form = object$p0.formula, sym = "\\gamma"),
-      p1  = list(name = "p1",  lhs = sprintf("\\mathrm{logit}(p_{1%s})", lhs_idx), form = object$p1.formula, sym = "\\delta")
-    )
-    
-    for (comp in intersect(names(components_sym), comps_to_print)) {
-      form <- components_sym[[comp]]$form
-      if (!is.null(form) && !identical(form, ~0)) {
-        mt_c <- stats::terms(form)
-        tls <- attr(mt_c, "term.labels")
-        sym <- components_sym[[comp]]$sym
-        
-        rhs_c <- c()
-        b_c <- 0
-        if (attr(mt_c, "intercept") == 1) {
-          rhs_c <- c(rhs_c, sprintf("%s_{%d}", sym, b_c))
-          b_c <- b_c + 1
-        }
-        
-        for (var in tls) {
-          safe_var <- format_var_math(var, custom_labels)
-          v_idx <- get_idx(var)
-          
-          rhs_c <- c(rhs_c, sprintf("%s_{%d}~%s_{%s}", sym, b_c, safe_var, v_idx))
-          b_c <- b_c + 1
-        }
-        lines_out <- c(lines_out, sprintf("  %s &= %s \\nonumber", components_sym[[comp]]$lhs, chunk_terms(rhs_c, chunk_size = 4, is_numeric = FALSE)))
-      }
-    }
-    
-  } else {
-    summ <- summary(sd_rep, "fixed")
-    components_num <- list(
-      mu  = list(prefix = "beta_mu", lhs = get_link_latex(link_name, mu_symbol), mat = "X_mu"),
-      phi = list(prefix = "beta_phi", lhs = sprintf("\\log(\\phi_{%s})", lhs_idx), mat = "X_phi"),
-      p0  = list(prefix = "beta_p0", lhs = sprintf("\\mathrm{logit}(p_{0%s})", lhs_idx), mat = "X_p0"),
-      p1  = list(prefix = "beta_p1", lhs = sprintf("\\mathrm{logit}(p_{1%s})", lhs_idx), mat = "X_p1")
-    )
-    
-    for (comp in intersect(names(components_num), comps_to_print)) {
-      prefix <- components_num[[comp]]$prefix
-      idx <- grep(paste0("^", prefix), rownames(summ))
-      
-      if (length(idx) > 0) {
-        lhs <- components_num[[comp]]$lhs
-        beta_vals <- summ[idx, 1]
-        mat_name <- components_num[[comp]]$mat
-        
-        term_names <- rep(prefix, length(beta_vals))
-        if (!is.null(object$obj$env$data[[mat_name]])) {
-          real_names <- colnames(object$obj$env$data[[mat_name]])
-          if (!is.null(real_names) && length(real_names) == length(beta_vals)) {
-            term_names <- real_names
-          }
-        }
-        
-        rhs_parts <- character(length(beta_vals))
-        for (k in 1:length(beta_vals)) {
-          val <- beta_vals[k]
-          term <- term_names[k]
-          
-          val_str <- sprintf(paste0("%.", digits, "f"), abs(val))
-          sign_str <- if (val >= 0) "+" else "-"
-          
-          if (term == "(Intercept)") {
-            rhs_parts[k] <- sprintf(paste0("%.", digits, "f"), val)
-          } else {
-            safe_term <- format_var_math(term, custom_labels)
-            v_idx <- get_idx(term)
-            rhs_parts[k] <- sprintf("%s %s~%s_{%s}", sign_str, val_str, safe_term, v_idx)
-          }
-        }
-        
-        if (comp == "mu" && has_re) {
-          rhs_parts <- c(rhs_parts, "+ \\mathbf{z}_i^\\top \\mathbf{u}")
-        }
-        
-        rhs_parts[1] <- sub("^\\+ ", "", rhs_parts[1])
-        lines_out <- c(lines_out, sprintf("  %s &= %s \\nonumber", lhs, chunk_terms(rhs_parts, chunk_size = 3, is_numeric = TRUE)))
-      }
-    }
-  }
-  
-  if (has_re && ("mu" %in% comps_to_print || component == "all")) {
-    lines_out <- c(lines_out, "  & \\quad \\text{where } \\mathbf{u} \\sim N(\\mathbf{0}, \\mathbf{\\Sigma}) \\nonumber")
-  }
-  
   if (index_labels) {
-    n_i <- if (has_re && !is.null(object$re_info_mu)) object$re_info_mu$n_re_levels_list[1] else object$nobs
-    
-    if (has_re && !is.null(grouping_var)) {
-      n_j <- round(object$nobs / n_i)
-      lbl <- sprintf("  & \\quad \\text{for } i = 1, \\dots, %s \\quad \\text{and } j = 1, \\dots, %s \\nonumber", n_i, n_j)
+    re_components <- comps_to_print[vapply(comps_to_print, has_re, logical(1))]
+    if (length(re_components) && !is.null(grouping_var)) {
+      first_comp <- re_components[1L]
+      re_info <- object[[paste0("re_info_", first_comp)]]
+      n_clusters <- NULL
+      if (!is.null(re_info) && !is.null(re_info$n_re_levels_list) && length(re_info$n_re_levels_list)) n_clusters <- re_info$n_re_levels_list[1L]
+      if (!is.null(n_clusters) && is.finite(n_clusters)) {
+        lbl <- sprintf("  & \\quad \\text{for } i = 1, \\dots, %s, \\quad j = 1, \\dots, n_i \\nonumber", n_clusters)
+      } else {
+        lbl <- "  & \\quad \\text{for clusters } i \\text{ and within-cluster observations } j \\nonumber"
+      }
     } else {
-      lbl <- sprintf("  & \\quad \\text{for } i = 1, \\dots, %s \\nonumber", n_i)
+      n_obs <- object$nobs %||% if (!is.null(dat$X_mu)) nrow(dat$X_mu) else NA_integer_
+      if (is.finite(n_obs)) {
+        lbl <- sprintf("  & \\quad \\text{for } i = 1, \\dots, %s \\nonumber", n_obs)
+      } else {
+        lbl <- "  & \\quad \\text{for observations } i \\nonumber"
+      }
     }
     lines_out <- c(lines_out, lbl)
   }
-  
-  final_tex <- paste0(
-    "\\begin{align}\n",
-    paste(lines_out, collapse = " \\\\\n"), "\n",
-    "\\end{align}\n"
-  )
-  
+
+  final_tex <- paste0("\\begin{align}\n", paste(lines_out, collapse = " \\\\\n"), "\n\\end{align}\n")
   cat(final_tex)
   invisible(final_tex)
 }

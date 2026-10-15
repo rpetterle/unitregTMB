@@ -13,9 +13,9 @@ using namespace Rcpp;
 // ----------------------------------------------------------------------------
 // 1. Parameterization (Mode)
 // mu  : Moda (0 < mu < 1)
-// phi : Shape 'a' (phi > 1)
+// phi : Shifted shape a-1 (phi > 0); a = 1 + phi
 //
-// b = (1 + (phi - 1) * mu^(-phi)) / phi
+// b = (1 + phi * mu^(-(1+phi))) / (1+phi)
 // ----------------------------------------------------------------------------
 
 // [[Rcpp::export]]
@@ -27,13 +27,13 @@ NumericVector cpp_dkum_mode(const NumericVector x, const NumericVector mu, const
   for (int i = 0; i < n; ++i) {
     double cur_x   = x[i % nx];
     double cur_mu  = mu[i % nmu];
-    double cur_phi = phi[i % nphi]; // 'a'
+    double cur_phi = phi[i % nphi]; 
     
-    if (cur_mu <= 0 || cur_mu >= 1 || cur_phi <= 1) { out[i] = R_NaN; continue; }
+    if (cur_mu <= 0 || cur_mu >= 1 || cur_phi <= 0) { out[i] = R_NaN; continue; }
     if (cur_x <= 0 || cur_x >= 1) { out[i] = log_prob ? R_NegInf : 0.0; continue; }
     
-    double cur_a = cur_phi;
-    double cur_b = (1.0 + (cur_a - 1.0) * std::pow(cur_mu, -cur_a)) / cur_a;
+    double cur_a = 1.0 + cur_phi;
+    double cur_b = (1.0 + cur_phi * std::pow(cur_mu, -cur_a)) / cur_a;
     
     // log(f) = log(a) + log(b) + (a-1)log(x) + (b-1)log(1 - x^a)
     // log(1 - x^a) -> log1p(-x^a) 
@@ -60,21 +60,20 @@ NumericVector cpp_pkum_mode(const NumericVector q, const NumericVector mu, const
     double cur_mu  = mu[i % nmu];
     double cur_phi = phi[i % nphi];
     
-    if (cur_mu <= 0 || cur_mu >= 1 || cur_phi <= 1) { out[i] = R_NaN; continue; }
-    if (cur_q <= 0) { out[i] = (log_prob ? R_NegInf : (lower_tail ? 0.0 : 1.0)); continue; }
-    if (cur_q >= 1) { out[i] = (log_prob ? 0.0 : (lower_tail ? 1.0 : 0.0)); continue; }
+    if (cur_mu <= 0 || cur_mu >= 1 || cur_phi <= 0) { out[i] = R_NaN; continue; }
+    if (cur_q <= 0) { out[i] = log_prob ? (lower_tail ? R_NegInf : 0.0) : (lower_tail ? 0.0 : 1.0); continue; }
+    if (cur_q >= 1) { out[i] = log_prob ? (lower_tail ? 0.0 : R_NegInf) : (lower_tail ? 1.0 : 0.0); continue; }
     
-    double cur_a = cur_phi;
-    double cur_b = (1.0 + (cur_a - 1.0) * std::pow(cur_mu, -cur_a)) / cur_a;
+    double cur_a = 1.0 + cur_phi;
+    double cur_b = (1.0 + cur_phi * std::pow(cur_mu, -cur_a)) / cur_a;
     
     // F(x) = 1 - (1 - x^a)^b
     // log(1 - x^a)
     double log_base = std::log1p(-std::pow(cur_q, cur_a));
     
-    double log_S = cur_b * log_base; // log(Survival)
+    double log_S = cur_b * log_base; 
     
     if (lower_tail) {
-      // P = 1 - S = -expm1(log_S)
       out[i] = log_prob ? std::log(-std::expm1(log_S)) : -std::expm1(log_S);
     } else {
       out[i] = log_prob ? log_S : std::exp(log_S);
@@ -94,14 +93,14 @@ NumericVector cpp_qkum_mode(const NumericVector p, const NumericVector mu, const
     double cur_mu  = mu[i % nmu];
     double cur_phi = phi[i % nphi];
     
-    if (cur_mu <= 0 || cur_mu >= 1 || cur_phi <= 1) { out[i] = R_NaN; continue; }
+    if (cur_mu <= 0 || cur_mu >= 1 || cur_phi <= 0) { out[i] = R_NaN; continue; }
     
     double pp = cur_p;
     if (log_prob) pp = std::exp(pp);
     if (pp < 0 || pp > 1) { out[i] = R_NaN; continue; }
     
-    double cur_a = cur_phi;
-    double cur_b = (1.0 + (cur_a - 1.0) * std::pow(cur_mu, -cur_a)) / cur_a;
+    double cur_a = 1.0 + cur_phi;
+    double cur_b = (1.0 + cur_phi * std::pow(cur_mu, -cur_a)) / cur_a;
     
     // Q(p) = (1 - (1-p)^(1/b))^(1/a)
     // if lower_tail = FALSE: Q(p) = (1 - p^(1/b))^(1/a)
