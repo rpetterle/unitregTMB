@@ -16,7 +16,7 @@
   show.progress = TRUE,
   max_attempts = NULL,
   seed = NULL,
-  grad.tol = 0.001,
+  grad.tol = NULL,
   strict = TRUE,
   retry.start = TRUE,
   warm.start = TRUE,
@@ -72,10 +72,10 @@ generation. Supplying a seed makes a serial run reproducible. Parallel
 runs use independent reproducible worker streams for a fixed
 \code{ncpus}.}
 
-\item{grad.tol}{Positive numeric scalar giving the maximum accepted absolute
-final gradient for a bootstrap refit. The default is \code{1e-3}. Set to
-\code{NULL} to disable the gradient filter and rely only on the optimizer
-convergence code and finite-solution checks.}
+\item{grad.tol}{Optional positive numeric scalar giving the maximum accepted
+absolute final gradient for a bootstrap refit. The default, \code{NULL},
+disables the gradient filter. If a numeric tolerance is supplied, refits
+with non-finite gradients or gradients exceeding this threshold are rejected.}
 
 \item{strict}{Logical. If \code{TRUE}, stop when fewer than \code{nsim}
 valid refits are obtained after \code{max_attempts}. If \code{FALSE}, use
@@ -140,9 +140,10 @@ conditional on the fitted latent modes and then refits the model.
 Failed refits do not enter the envelope. A refit is accepted only when the
 optimizer reports convergence, the optimized objective and parameter vector
 are finite, and, when \code{grad.tol} is not \code{NULL}, the final maximum
-absolute gradient does not exceed the requested tolerance. The returned
-\code{bootstrap_diagnostics} component records accepted and rejected
-attempts.
+absolute gradient is finite and does not exceed the requested tolerance.
+With the default \code{grad.tol = NULL}, no additional gradient filter is
+applied. The returned \code{bootstrap_diagnostics} component records
+accepted and rejected attempts.
 
 The envelope is pointwise rather than simultaneous. With a 95 percent
 envelope, for example, each tail is estimated from 2.5 percent of the valid
@@ -186,7 +187,7 @@ env$nsim.valid
 head(env$bootstrap_diagnostics)
 
 # Conditional bootstrap as a complementary diagnostic:
-plot_envelope(fit, 
+plot_envelope(fit,
               nsim = 100,
               bootstrap = "conditional",
               seed = 123)
