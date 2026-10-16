@@ -46,28 +46,23 @@ combines the resulting coordinates in long format for subsequent plotting or
 comparison.
 }
 \details{
-Model labels include the distribution name and, when available, the
-mean/mode/quantile parameterization, quantile level, zero/one augmentation,
-ordinary random-effects structure, and spatial structure. The actual
-simulation and envelope construction are delegated to
-\code{regcore::plot_envelope}.
+Model labels include the distribution name and parameterization, when
+available, without repeating the parameterization. They can also include
+the quantile level, zero/one augmentation, ordinary random-effects
+structure, and spatial structure. The actual simulation and envelope
+construction are delegated to \code{regcore::plot_envelope}.
 }
 \examples{
 \donttest{
 data("wqi", package = "unitregTMB")
 
-fit <- unitregTMB(
-  y ~ location,
-  data = wqi,
-  family = unitgamma(model_for = "mean"),
-)
+fit <- unitregTMB(y ~ location,
+                  family = unitgamma(model_for = "mean"),
+                  data = wqi)
 
-env <- regcore::df_envelopes(
-  fit,
-  nsim = 5,
-  ncpus = 1,
-  show.progress = FALSE
-)
+env <- regcore::df_envelopes(fit, nsim = 5,
+                             ncpus = 1,
+                             show.progress = FALSE)
 
 head(env)
 }
