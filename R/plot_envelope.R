@@ -542,77 +542,20 @@
 
 .unitreg_env_plot <- function(x, main = NULL, ...) {
   d <- x$data
-  
-  yr <- range(
-    c(d$Lower, d$Upper, d$Observed),
-    finite = TRUE
-  )
-  
+  yr <- range(c(d$Lower, d$Upper, d$Observed), finite = TRUE)
   xr <- range(d$Theoretical, finite = TRUE)
-  
-  graphics::plot(
-    d$Theoretical,
-    d$Observed,
-    type = "n",
-    xlim = xr,
-    ylim = yr,
-    xlab = paste(
-      "Theoretical",
-      x$distribution_label,
-      "quantiles"
-    ),
-    ylab = x$ylab,
-    main = .unitreg_env_or(
-      main,
-      paste0(
-        as.character(x$family)[1L],
-        " [",
-        x$bootstrap,
-        " bootstrap]"
-      )
-    ),
-    bty = "o",
-    ...
-  )
-  
-  graphics::grid(
-    col = "gray92",
-    lty = 1,
-    lwd = 1.1
-  )
-  
-  graphics::lines(
-    d$Theoretical,
-    d$Lower,
-    lty = 1,
-    col = "gray35",
-    lwd = 1.4
-  )
-  
-  graphics::lines(
-    d$Theoretical,
-    d$Upper,
-    lty = 1,
-    col = "gray35",
-    lwd = 1.4
-  )
-  
-  graphics::lines(
-    d$Theoretical,
-    d$Median,
-    lty = 2,
-    col = "black",
-    lwd = 1.2
-  )
-  
-  graphics::points(
-    d$Theoretical,
-    d$Observed,
-    pch = 3,
-    col = "black",
-    cex = 0.8
-  )
-  
+  graphics::plot(d$Theoretical, d$Observed, type = "n", xlim = xr, ylim = yr,
+                 xlab = paste("Theoretical", x$distribution_label, "quantiles"),
+                 ylab = x$ylab,
+                 bty = "o",
+                 main = .unitreg_env_or(main, 
+                                        paste0(as.character(x$family)[1L],
+                                                     " [",  x$bootstrap, " bootstrap]")), ...)
+  graphics::grid(col = "gray92", lty = 1, lwd = 1.1)
+  graphics::lines(d$Theoretical, d$Lower, lty = 1, col = "gray35", lwd = 1.4)
+  graphics::lines(d$Theoretical, d$Upper, lty = 1, col = "gray35", lwd = 1.4)
+  graphics::lines(d$Theoretical, d$Median, lty = 2, col = "black", lwd = 1.2)
+  graphics::points(d$Theoretical, d$Observed, pch = 3, col = "black", cex = 0.8)
   invisible(x)
 }
 
@@ -680,7 +623,7 @@
 #' @param ... Additional graphical arguments passed to \code{graphics::plot()}.
 #'
 #' @details
-#' The marginal algorithm for ordinary mixed-effects models is
+#' The marginal algorithm for mixed-effects models is
 #'
 #' \deqn{
 #'   b^{*} \sim N(0,\widehat{\Sigma}), \qquad
@@ -858,7 +801,7 @@ plot_envelope.unitregTMB <- function(object,
   }
   
   if (identical(bootstrap, "marginal") && !has_re && show.progress) {
-    message("No ordinary random effects detected: marginal and conditional ",
+    message("No random effects detected: marginal and conditional ",
             "generation coincide.")
   }
   
@@ -1041,34 +984,18 @@ plot_envelope.unitregTMB <- function(object,
       )
       
       if (inherits(rr, "error")) {
-        return(fail(
-          "residuals",
-          conditionMessage(rr),
-          convergence,
-          max_gradient,
-          retried
-        ))
+        return(fail("residuals", conditionMessage(rr), convergence,
+                    max_gradient, retried))
       }
       
       if (length(rr) != n || any(!is.finite(rr))) {
-        return(fail(
-          "residuals",
-          "invalid residual vector",
-          convergence,
-          max_gradient,
-          retried
-        ))
+        return(fail("residuals", "invalid residual vector", convergence,
+                    max_gradient, retried))
       }
       
-      list(
-        ok = TRUE,
-        residuals = rr,
-        stage = "ok",
-        reason = "",
-        convergence = convergence,
-        max_gradient = max_gradient,
-        retried = retried
-      )
+      list(ok = TRUE, residuals = rr, stage = "ok",  reason = "",
+           convergence = convergence, max_gradient = max_gradient,
+           retried = retried)
     }
     
     first <- fit_once(use_start = !is.null(start0), retried = FALSE)
@@ -1094,10 +1021,8 @@ plot_envelope.unitregTMB <- function(object,
   
   if (ncpus == 1L) {
     if (show.progress) {
-      cat(
-        "Simulating ", bootstrap, " residual envelope (target ", nsim,
-        " valid fits; up to ", max_attempts, " attempts)...\n", sep = ""
-      )
+      cat("Simulating ", bootstrap, " residual envelope (target ", nsim,
+          " valid fits; up to ", max_attempts, " attempts)...\n", sep = "")
     }
     
     pb <- NULL
@@ -1129,11 +1054,9 @@ plot_envelope.unitregTMB <- function(object,
     }
   } else {
     if (show.progress) {
-      cat(
-        "Simulating ", bootstrap, " residual envelope with ", ncpus,
-        " workers (target ", nsim, " valid fits; up to ", max_attempts,
-        " attempts)...\n", sep = ""
-      )
+      cat("Simulating ", bootstrap, " residual envelope with ", ncpus,
+          " workers (target ", nsim, " valid fits; up to ", max_attempts,
+          " attempts)...\n", sep = "")
     }
     
     cl <- parallel::makeCluster(ncpus)
@@ -1229,10 +1152,8 @@ plot_envelope.unitregTMB <- function(object,
     tab_fail <- sort(table(diagnostics$stage[!diagnostics$ok]), decreasing = TRUE)
     
     failure_text <- if (length(tab_fail)) {
-      paste(
-        paste0(names(tab_fail), " [n=", as.integer(tab_fail), "]"),
-        collapse = "; "
-      )
+      paste(paste0(names(tab_fail), " [n=", as.integer(tab_fail), "]"),
+            collapse = "; ")
     } else {
       "none"
     }
@@ -1246,17 +1167,13 @@ plot_envelope.unitregTMB <- function(object,
     if (length(failed_reasons)) {
       reason_counts <- sort(table(failed_reasons), decreasing = TRUE)
       reason_counts <- head(reason_counts, 5L)
-      reason_text <- paste(
-        paste0(names(reason_counts), " [n=", as.integer(reason_counts), "]"),
-        collapse = "; "
-      )
+      reason_text <- paste(paste0(names(reason_counts), " [n=", as.integer(reason_counts), "]"),
+                           collapse = "; ")
     }
     
-    msg <- paste0(
-      "Only ", length(valid), " valid bootstrap fits were obtained after ",
-      length(attempts), " attempts (target = ", nsim, "). Failure stages: ",
-      failure_text, ". Most common failure reasons: ", reason_text, "."
-    )
+    msg <- paste0("Only ", length(valid), " valid bootstrap fits were obtained after ",
+                  length(attempts), " attempts (target = ", nsim, "). Failure stages: ",
+                  failure_text, ". Most common failure reasons: ", reason_text, ".")
     
     if (isTRUE(strict)) {
       stop(msg, call. = FALSE)
@@ -1287,9 +1204,7 @@ plot_envelope.unitregTMB <- function(object,
     distribution_label <- "Half-Normal"
     
     observed <- sort(abs(observed_raw))
-    simulated_ordered <- apply(
-      res_sim, 2L, function(x) sort(abs(x), na.last = NA)
-    )
+    simulated_ordered <- apply(res_sim, 2L, function(x) sort(abs(x), na.last = NA))
     p <- (seq_len(n) + n - 1 / 8) / (2 * n + 0.5)
     theoretical <- stats::qnorm(p)
     
@@ -1303,56 +1218,37 @@ plot_envelope.unitregTMB <- function(object,
     theoretical <- stats::qnorm(p)
   }
   
-  lower <- apply(
-    simulated_ordered,
-    1L,
-    stats::quantile,
-    probs = alpha,
-    type = quantile.type,
-    names = FALSE,
-    na.rm = TRUE
-  )
+  lower <- apply(simulated_ordered, 1L, stats::quantile, probs = alpha,
+                 type = quantile.type, names = FALSE, na.rm = TRUE)
   
   median_curve <- apply(simulated_ordered, 1L, stats::median, na.rm = TRUE)
   
-  upper <- apply(
-    simulated_ordered,
-    1L,
-    stats::quantile,
-    probs = 1 - alpha,
-    type = quantile.type,
-    names = FALSE,
-    na.rm = TRUE
-  )
+  upper <- apply(simulated_ordered, 1L, stats::quantile, probs = 1 - alpha,
+                 type = quantile.type, names = FALSE, na.rm = TRUE)
   
-  envelope_data <- data.frame(
-    Theoretical = theoretical,
-    Observed = observed,
-    Lower = lower,
-    Median = median_curve,
-    Upper = upper,
-    row.names = NULL
-  )
+  envelope_data <- data.frame(Theoretical = theoretical,
+                              Observed = observed, Lower = lower,
+                              Median = median_curve,
+                              Upper = upper,
+                              row.names = NULL)
   
-  ans <- list(
-    data = envelope_data,
-    family = object$family,
-    bootstrap = bootstrap,
-    generates_new_random_effects = identical(bootstrap, "marginal") && has_re,
-    resid.type = resid.type,
-    halfnormal = isTRUE(halfnormal),
-    level = level,
-    quantile.type = quantile.type,
-    nsim.requested = nsim,
-    nsim.valid = ncol(simulated_ordered),
-    attempts = length(attempts),
-    failures = sum(!ok),
-    retries.used = sum(vapply(valid, function(z) isTRUE(z$retried), logical(1))),
-    grad.tol = grad.tol,
-    bootstrap_diagnostics = diagnostics,
-    ylab = ylab,
-    distribution_label = distribution_label
-  )
+  ans <- list(data = envelope_data,
+              family = object$family,
+              bootstrap = bootstrap,
+              generates_new_random_effects = identical(bootstrap, "marginal") && has_re,
+              resid.type = resid.type,
+              halfnormal = isTRUE(halfnormal),
+              level = level,
+              quantile.type = quantile.type,
+              nsim.requested = nsim,
+              nsim.valid = ncol(simulated_ordered),
+              attempts = length(attempts),
+              failures = sum(!ok),
+              retries.used = sum(vapply(valid, function(z) isTRUE(z$retried), logical(1))),
+              grad.tol = grad.tol,
+              bootstrap_diagnostics = diagnostics,
+              ylab = ylab,
+              distribution_label = distribution_label)
   
   if (isTRUE(keep.sim)) {
     ans$simulated_residuals <- simulated_ordered
