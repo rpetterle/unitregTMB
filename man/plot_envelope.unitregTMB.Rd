@@ -125,7 +125,7 @@ ordered values are used to obtain the lower, median, and upper pointwise
 envelope curves.
 }
 \details{
-The marginal algorithm for ordinary mixed-effects models is
+The marginal algorithm for mixed-effects models is
 
 \deqn{
   b^{*} \sim N(0,\widehat{\Sigma}), \qquad

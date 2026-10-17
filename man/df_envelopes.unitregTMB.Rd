@@ -42,15 +42,19 @@ A \code{data.frame} containing the envelope coordinates returned by
 \description{
 Computes simulated residual envelopes for one or more fitted
 \code{unitregTMB} models through the \code{regcore} envelope machinery and
-combines the resulting coordinates in long format for subsequent plotting or
-comparison.
+combines the resulting coordinates in long format for subsequent plotting
+or comparison.
 }
 \details{
-Model labels include the distribution name and parameterization, when
-available, without repeating the parameterization. They can also include
-the quantile level, zero/one augmentation, ordinary random-effects
-structure, and spatial structure. The actual simulation and envelope
-construction are delegated to \code{regcore::plot_envelope}.
+Model labels identify the distribution and its parameterization.
+For quantile regression models, only the quantile level is displayed
+in parentheses, such as \code{(tau=0.5)}. Random-effects and
+spatial structures are not included in the labels.
+Zero/one augmentation may be indicated for mean and modal models.
+Duplicate labels are made unique automatically.
+
+The actual simulation and envelope construction are delegated to
+\code{regcore::plot_envelope}.
 }
 \examples{
 \donttest{
