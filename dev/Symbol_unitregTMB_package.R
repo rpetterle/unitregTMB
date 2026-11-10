@@ -57,8 +57,7 @@ p <- ggplot() +
   theme(
     plot.background = element_rect(fill = "transparent", color = NA),
     panel.background = element_rect(fill = "transparent", color = NA),
-    legend.position = "none"
-  )
+    legend.position = "none")
 p
 
 ## Save
