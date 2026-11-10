@@ -4,7 +4,7 @@
 \alias{gof_tab.unitregTMB}
 \title{Compare Goodness-of-Fit Measures from unitregTMB Models}
 \usage{
-\method{gof_tab}{unitregTMB}(object, ..., digits = 2)
+\method{gof_tab}{unitregTMB}(object, ..., digits = 2, sort_models = FALSE, print_tex = FALSE)
 }
 \arguments{
 \item{object}{A fitted \code{unitregTMB} object.}
@@ -13,11 +13,21 @@
 
 \item{digits}{Non-negative integer giving the number of decimal places
 used when printing the goodness-of-fit measures.}
+
+\item{sort_models}{Logical scalar. If \code{TRUE}, models are sorted by
+increasing AIC. The printed table then ends with an explanatory note.
+The default, \code{FALSE}, preserves the supplied model order and the
+existing printed output.}
+
+\item{print_tex}{Logical scalar. If \code{TRUE}, prints LaTeX code for a
+table (as in \code{summary_coef()}). Default is \code{FALSE}.}
 }
 \value{
 An object of class \code{gof_tab.unitregTMB}. It is a list with
   one element per fitted model, containing the model label,
-  log-likelihood, AIC, and BIC.
+  log-likelihood, AIC, and BIC. The \code{sort_models} attribute is set to
+  \code{TRUE} only when sorting is requested. The \code{print_tex}
+  attribute records the requested output format.
 }
 \description{
 Compares log-likelihood, Akaike information criterion (AIC), and Bayesian
@@ -33,9 +43,14 @@ For quantile regression, the quantile level is displayed directly in the
 model label. For example, a Kumaraswamy median regression is shown as
 \code{"Kumaraswamy (tau = 0.5)"}.
 
+When \code{sort_models = TRUE}, sorting is performed on the unrounded AIC
+values; equal AIC values retain their original order, and missing AIC
+values are placed last. Smaller AIC values are preferred.
+
 When many models are compared, the print method automatically divides the
 table into blocks according to the current console width, as determined by
-\code{getOption("width")}.
+\code{getOption("width")}. When \code{print_tex = TRUE},
+a simple LaTeX table is produced instead of the console table.
 }
 \examples{
 \donttest{
@@ -50,6 +65,8 @@ fit_ug <- unitregTMB(y ~ location + quarter + (1 | id),
                      data = wqi)
 
 gof_tab(fit_beta, fit_ug)
+gof_tab(fit_beta, fit_ug, sort_models = TRUE)
+gof_tab(fit_beta, fit_ug, sort_models = TRUE, print_tex = TRUE)
 }
 
 }

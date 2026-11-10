@@ -25,7 +25,6 @@ Imports:
     reformulas, 
     stats, 
     utils, 
-    methods,
     graphics,
     parallel    
 RoxygenNote: 7.3.3
@@ -34,6 +33,5 @@ LinkingTo: TMB, RcppEigen, Rcpp
 SystemRequirements: GNU make
 URL: https://github.com/rpetterle/unitregTMB
 BugReports: https://github.com/rpetterle/unitregTMB/issues
-VignetteBuilder: knitr
 LazyData: true
 Config/testthat/edition: 3

@@ -4,13 +4,16 @@
 \alias{print.gof_tab.unitregTMB}
 \title{Print a gof_tab.unitregTMB Object}
 \usage{
-\method{print}{gof_tab.unitregTMB}(x, digits = NULL, ...)
+\method{print}{gof_tab.unitregTMB}(x, digits = NULL, print_tex = NULL, ...)
 }
 \arguments{
 \item{x}{An object of class \code{gof_tab.unitregTMB}.}
 
 \item{digits}{Optional non-negative integer overriding the number of
 decimal places stored in \code{x}.}
+
+\item{print_tex}{Optional logical value overriding the LaTeX output
+option stored in \code{x}.}
 
 \item{...}{Additional arguments, currently unused.}
 }
@@ -24,6 +27,8 @@ Prints goodness-of-fit measures returned by
 \details{
 Columns are sized independently. If the complete table is wider than the
 available console width, the output is automatically divided into blocks.
+If the models were sorted by AIC, a note is printed once below the table,
+either as console text or within the LaTeX table environment.
 
 The available console width can be modified with, for example,
 \code{options(width = 120)}.

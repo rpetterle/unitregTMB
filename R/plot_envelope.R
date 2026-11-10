@@ -1166,7 +1166,7 @@ plot_envelope.unitregTMB <- function(object,
     reason_text <- "none"
     if (length(failed_reasons)) {
       reason_counts <- sort(table(failed_reasons), decreasing = TRUE)
-      reason_counts <- head(reason_counts, 5L)
+      reason_counts <- utils::head(reason_counts, 5L)
       reason_text <- paste(paste0(names(reason_counts), " [n=", as.integer(reason_counts), "]"),
                            collapse = "; ")
     }

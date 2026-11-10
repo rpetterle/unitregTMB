@@ -3,3 +3,7 @@
 ^doc$
 ^Meta$
 ^data-raw$
+^\.github$
+^dev$
+^README\.Rmd$
+^Logo2\.png$
