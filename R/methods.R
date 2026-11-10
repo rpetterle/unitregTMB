@@ -530,6 +530,12 @@ print.unitregTMB <- function(x, digits = 4, ...) {
 #' @param ... Additional fitted \code{unitregTMB} objects.
 #' @param digits Non-negative integer giving the number of decimal places
 #'   used when printing the goodness-of-fit measures.
+#' @param sort_models Logical scalar. If \code{TRUE}, models are sorted by
+#'   increasing AIC. The printed table then ends with an explanatory note.
+#'   The default, \code{FALSE}, preserves the supplied model order and the
+#'   existing printed output.
+#' @param print_tex Logical scalar. If \code{TRUE}, prints LaTeX code for a
+#'   table (as in \code{summary_coef()}). Default is \code{FALSE}.
 #'
 #' @details
 #' Model labels are automatically constructed from the fitted family and
@@ -540,13 +546,20 @@ print.unitregTMB <- function(x, digits = 4, ...) {
 #' model label. For example, a Kumaraswamy median regression is shown as
 #' \code{"Kumaraswamy (tau = 0.5)"}.
 #'
+#' When \code{sort_models = TRUE}, sorting is performed on the unrounded AIC
+#' values; equal AIC values retain their original order, and missing AIC
+#' values are placed last. Smaller AIC values are preferred.
+#'
 #' When many models are compared, the print method automatically divides the
 #' table into blocks according to the current console width, as determined by
-#' \code{getOption("width")}.
+#' \code{getOption("width")}. When \code{print_tex = TRUE},
+#' a simple LaTeX table is produced instead of the console table.
 #'
 #' @return An object of class \code{gof_tab.unitregTMB}. It is a list with
 #'   one element per fitted model, containing the model label,
-#'   log-likelihood, AIC, and BIC.
+#'   log-likelihood, AIC, and BIC. The \code{sort_models} attribute is set to
+#'   \code{TRUE} only when sorting is requested. The \code{print_tex}
+#'   attribute records the requested output format.
 #'
 #' @examples
 #' \donttest{
@@ -561,6 +574,8 @@ print.unitregTMB <- function(x, digits = 4, ...) {
 #'                      data = wqi)
 #'
 #' gof_tab(fit_beta, fit_ug)
+#' gof_tab(fit_beta, fit_ug, sort_models = TRUE)
+#' gof_tab(fit_beta, fit_ug, sort_models = TRUE, print_tex = TRUE)
 #' }
 #'
 #' @author Ricardo Rasmussen Petterle
@@ -568,55 +583,58 @@ print.unitregTMB <- function(x, digits = 4, ...) {
 #' @method gof_tab unitregTMB
 #' @rdname gof_tab_unitregTMB
 #' @export
-gof_tab.unitregTMB <- function(object, ..., digits = 2) {
-
+gof_tab.unitregTMB <- function(object, ..., digits = 2, sort_models = FALSE, print_tex = FALSE) {
   models <- list(object, ...)
-
+  
   if (!length(models)) {
     stop("At least one fitted 'unitregTMB' model must be supplied.", call. = FALSE)
   }
-
-  ok <- vapply(
-    models,
-    inherits,
-    logical(1),
-    what = "unitregTMB"
-  )
-
+  
+  ok <- vapply(models, inherits, logical(1), what = "unitregTMB")
+  
   if (!all(ok)) {
-    stop(
-      "All supplied objects must inherit from 'unitregTMB'.",
-      call. = FALSE
-    )
+    stop("All supplied objects must inherit from 'unitregTMB'.",
+         call. = FALSE)
   }
-
-  if (!is.numeric(digits) || length(digits) != 1L ||  !is.finite(digits) ||
+  if (!is.numeric(digits) || length(digits) != 1L || !is.finite(digits) ||
       digits < 0 || digits != as.integer(digits)) {
-    stop( "'digits' must be a non-negative integer.", call. = FALSE)
+    stop("'digits' must be a non-negative integer.", call. = FALSE)
   }
-
+  if (!is.logical(sort_models) || length(sort_models) != 1L || is.na(sort_models)) {
+    stop("'sort_models' must be TRUE or FALSE.", call. = FALSE)
+  }
+  
+  if (!is.logical(print_tex) || length(print_tex) != 1L || is.na(print_tex)) {
+    stop("'print_tex' must be TRUE or FALSE.", call. = FALSE)
+  }
+  
   digits <- as.integer(digits)
-
+  
   model_labels <- make.unique(
-    vapply(models, .unitreg_compact_model_label,  character(1)), sep = " #")
-
+    vapply(models, .unitreg_compact_model_label, character(1)), sep = " #")
+  
   out <- lapply(seq_along(models), function(i) {
     model <- models[[i]]
-
+    
     ll <- as.numeric(logLik(model))
-
     list(model_name = model_labels[i],
-         logLik = ll, 
-         AIC = AIC(model), 
+         logLik = ll,
+         AIC = AIC(model),
          BIC = BIC(model))
   })
-
+  
+  if (sort_models) {
+    aic_values <- vapply(out, function(z) z$AIC, numeric(1))
+    out <- out[order(aic_values, na.last = TRUE, method = "radix")]
+  }
+  
   class(out) <- c("gof_tab.unitregTMB", "list")
-
+  
   attr(out, "digits") <- digits
+  if (sort_models) attr(out, "sort_models") <- TRUE
+  attr(out, "print_tex") <- print_tex
   out
 }
-
 
 #' Print a gof_tab.unitregTMB Object
 #'
@@ -627,11 +645,15 @@ gof_tab.unitregTMB <- function(object, ..., digits = 2) {
 #' @param x An object of class \code{gof_tab.unitregTMB}.
 #' @param digits Optional non-negative integer overriding the number of
 #'   decimal places stored in \code{x}.
+#' @param print_tex Optional logical value overriding the LaTeX output
+#'   option stored in \code{x}.
 #' @param ... Additional arguments, currently unused.
 #'
 #' @details
 #' Columns are sized independently. If the complete table is wider than the
 #' available console width, the output is automatically divided into blocks.
+#' If the models were sorted by AIC, a note is printed once below the table,
+#' either as console text or within the LaTeX table environment.
 #'
 #' The available console width can be modified with, for example,
 #' \code{options(width = 120)}.
@@ -642,48 +664,47 @@ gof_tab.unitregTMB <- function(object, ..., digits = 2) {
 #' @method print gof_tab.unitregTMB
 #' @rdname print_gof_tab_unitregTMB
 #' @export
-print.gof_tab.unitregTMB <- function(x, digits = NULL, ...) {
-
+print.gof_tab.unitregTMB <- function(x, digits = NULL, print_tex = NULL, ...) {
   if (!inherits(x, "gof_tab.unitregTMB")) {
     stop("'x' must inherit from 'gof_tab.unitregTMB'.", call. = FALSE)
   }
-
+  
   if (is.null(digits)) {
     digits <- attr(x, "digits")
   }
-
+  
   if (is.null(digits)) {
     digits <- 2L
   }
-
+  
   if (!is.numeric(digits) || length(digits) != 1L || !is.finite(digits) ||
       digits < 0 || digits != as.integer(digits)) {
-
     stop("'digits' must be a non-negative integer.", call. = FALSE)
   }
-
+  
+  if (is.null(print_tex)) print_tex <- isTRUE(attr(x, "print_tex"))
+  if (!is.logical(print_tex) || length(print_tex) != 1L || is.na(print_tex)) {
+    stop("'print_tex' must be TRUE or FALSE.", call. = FALSE)
+  }
+  
   digits <- as.integer(digits)
-
   model_names <- make.unique(vapply(x, function(z) {
-        if (!is.null(z$model_name) && length(z$model_name)) {
-          as.character(z$model_name)[1L]
-        } else {
-          "unitregTMB"
-        }
-      },
-      character(1)
-    ),
-    sep = " #"
-  )
-
+    if (!is.null(z$model_name) && length(z$model_name)) {
+      as.character(z$model_name)[1L]
+    } else {
+      "unitregTMB"
+    }
+  },
+  character(1)), 
+  sep = " #")
+  
   tab <- rbind(LogLik = vapply(x, function(z) z$logLik, numeric(1)),
                AIC = vapply(x, function(z) z$AIC, numeric(1)),
                BIC = vapply(x, function(z) z$BIC, numeric(1)))
-
+  
   colnames(tab) <- model_names
-
   fmt <- paste0("%.", digits, "f")
-
+  
   tab_chr <- matrix(
     vapply(
       as.vector(tab),
@@ -695,20 +716,48 @@ print.gof_tab.unitregTMB <- function(x, digits = NULL, ...) {
           "---"
         }
       },
-      character(1)
-    ),
+      character(1)),
     nrow = nrow(tab),
     ncol = ncol(tab),
-    dimnames = dimnames(tab)
-  )
-
-  cat("Goodness-of-fit measures for unitregTMB models:\n")
-
-  .unitreg_print_blocks(tab = tab_chr, row_labels = rownames(tab_chr),
-                        first_header = "Criterion", min_col_width = 12L)
+    dimnames = dimnames(tab))
+  
+  if (print_tex) {
+    escape_tex <- function(z) {
+      z <- gsub("_", "\\\\_", z, fixed = TRUE)
+      z <- gsub("%", "\\\\%", z, fixed = TRUE)
+      z <- gsub("&", "\\\\&", z, fixed = TRUE)
+      z <- gsub("#", "\\\\#", z, fixed = TRUE)
+      z <- gsub("$", "\\\\$", z, fixed = TRUE)
+      z
+    }
+    
+    cat("\\begin{table}[ht]\n")
+    cat("\\centering\n")
+    cat("\\begin{tabular}{", paste0("l", paste(rep("c", ncol(tab_chr)), collapse = "")), "}\n", sep = "")
+    cat("\\hline\n")
+    cat("Criterion & ", paste(escape_tex(colnames(tab_chr)), collapse = " & "), " \\\\\n", sep = "")
+    cat("\\hline\n")
+    for (i in seq_len(nrow(tab_chr))) {
+      cat(escape_tex(rownames(tab_chr)[i]), " & ", paste(tab_chr[i, ], collapse = " & "), " \\\\\n", sep = "")
+    }
+    cat("\\hline\n")
+    cat("\\end{tabular}\n")
+    if (isTRUE(attr(x, "sort_models"))) {
+      cat("\\par\\smallskip\n")
+      cat("{\\footnotesize\\emph{Note:} Models are ordered by AIC ",
+          "(lower values indicate better fit).\\par}\n", sep = "")
+    }
+    cat("\\end{table}\n")
+  } else {
+    cat("Goodness-of-fit measures for unitregTMB models:\n")
+    .unitreg_print_blocks(tab = tab_chr, row_labels = rownames(tab_chr),
+                          first_header = "Criterion", min_col_width = 12L)
+    if (isTRUE(attr(x, "sort_models"))) {
+      cat("Note: Models are ordered by AIC (lower values indicate better fit).\n")
+    }
+  }
   invisible(x)
 }
-
 #' Extract Fixed-Effect Coefficients
 #'
 #' Extracts regression coefficients from one distributional component or from
