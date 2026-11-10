@@ -4,16 +4,17 @@
 \alias{print.summary_coef.unitregTMB}
 \title{Print a summary_coef.unitregTMB Object}
 \usage{
-\method{print}{summary_coef.unitregTMB}(x, digits = NULL, print_tex = NULL, ...)
+\method{print}{summary_coef.unitregTMB}(x, digits = NULL, print_tex = NULL, signif_stars = NULL, ...)
 }
 \arguments{
 \item{x}{An object of class \code{summary_coef.unitregTMB}.}
 
-\item{digits}{Optional non-negative integer overriding the number of
-decimal places stored in \code{x}.}
+\item{digits}{Optional non-negative integer overriding the value in \code{x}.}
 
-\item{print_tex}{Optional logical value overriding the output format
-stored in \code{x}.}
+\item{print_tex}{Optional logical overriding the output format in \code{x}.}
+
+\item{signif_stars}{Optional logical overriding the significance display in
+\code{x}. When \code{TRUE}, adds significance codes after (SE).}
 
 \item{...}{Additional arguments, currently unused.}
 }
@@ -22,34 +23,7 @@ Invisibly returns \code{x}.
 }
 \description{
 Prints coefficient estimates and standard errors returned by
-\code{\link{summary_coef.unitregTMB}}.
-}
-\details{
-For console output, columns are sized independently and the table is
-automatically divided into blocks whenever the complete table would
-exceed the current console width.
-
-The console width can be modified with, for example,
-\code{options(width = 120)}.
-}
-\examples{
-\donttest{
-data("wqi", package = "unitregTMB")
-
-fit <- unitregTMB(
-  y ~ location,
-  data = wqi,
-  family = unitgamma(model_for = "mean")
-)
-
-x <- summary_coef(
-  fit,
-  component = c("mu", "phi")
-)
-
-print(x, digits = 2)
-}
-
+\code{\link{summary_coef.unitregTMB}}, optionally with Wald-test stars.
 }
 \author{
 Ricardo Rasmussen Petterle

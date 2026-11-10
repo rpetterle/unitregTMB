@@ -4,96 +4,72 @@
 \alias{summary_coef.unitregTMB}
 \title{Compare Fixed-Effect Coefficients from unitregTMB Models}
 \usage{
-\method{summary_coef}{unitregTMB}(object, ..., component = "mu", digits = 3, print_tex = FALSE)
+\method{summary_coef}{unitregTMB}(
+  object,
+  ...,
+  component = "mu",
+  digits = 3,
+  print_tex = FALSE,
+  signif_stars = FALSE
+)
 }
 \arguments{
 \item{object}{A fitted \code{unitregTMB} object.}
 
 \item{...}{Additional fitted \code{unitregTMB} objects.}
 
-\item{component}{Character vector selecting the distributional components
-to be displayed. Available options are \code{"mu"}, \code{"phi"},
-\code{"p0"}, \code{"p1"}, and \code{"all"}. The default is \code{"mu"}.}
+\item{component}{Character vector selecting distributional components:
+\code{"mu"}, \code{"phi"}, \code{"p0"}, \code{"p1"}, or \code{"all"}.
+The default is \code{"mu"}.}
 
-\item{digits}{Non-negative integer giving the number of decimal places used
-when printing estimates and standard errors.}
+\item{digits}{Non-negative integer giving the number of decimal places.}
 
-\item{print_tex}{Logical. If \code{TRUE}, a simple LaTeX table is printed.
+\item{print_tex}{Logical. If \code{TRUE}, prints a LaTeX table.
 The default is \code{FALSE}.}
+
+\item{signif_stars}{Logical. If \code{TRUE}, adds Wald-test significance
+symbols to the coefficient estimates. The default is \code{FALSE}.}
 }
 \value{
-An object of class \code{summary_coef.unitregTMB}. It is a list
-  with one element per fitted model, containing the model label,
-  coefficient estimates, standard errors, and coefficient names.
+An object of class \code{summary_coef.unitregTMB}, containing one
+  element per fitted model with \code{model_name}, \code{coefficients},
+  \code{std_errors}, \code{p_values}, and \code{coef_names}. The original
+  structure and default printed output are retained; the \code{p_values}
+  member is an additive extension.
 }
 \description{
 Extracts fixed-effect estimates and standard errors from one or more fitted
 \code{unitregTMB} models and displays them in a compact comparison table.
 }
 \details{
-The method supports the four distributional predictors available in
-\code{unitregTMB}: the location predictor \code{mu}, the precision or
-dispersion predictor \code{phi}, and the boundary-mass predictors
-\code{p0} and \code{p1}.
+The method supports the distributional predictors \code{mu}, \code{phi},
+\code{p0}, and \code{p1}. Coefficients are distinguished internally by
+component; the \code{mu.} prefix is omitted when printed.
 
-Coefficients are internally identified by both their distributional
-component and coefficient name. For display purposes, the \code{mu.}
-prefix is omitted, whereas the \code{phi.}, \code{p0.}, and \code{p1.}
-prefixes are retained.
+Two-sided asymptotic Wald p-values are computed as
+\code{2 * pnorm(-abs(estimate / se))} using full-precision estimates and
+standard errors stored in the fitted models. Invalid or nonpositive
+standard errors produce missing p-values and no significance symbols.
+These are unadjusted p-values; no multiple-testing correction is applied.
+Significance codes: \code{***} (< 0.001), \code{**} (< 0.01),
+\code{*} (< 0.05), \code{.} (< 0.1).
 
-Model labels are automatically constructed from the fitted family and
-parameterization. Mean and modal models are displayed, for example, as
-\code{"Beta (mean)"} and \code{"Beta (mode)"}. For quantile regression,
-the quantile level is used directly in the label, for example,
-\code{"Kumaraswamy (tau = 0.5)"}, without an additional
-\code{"quantile"} tag.
-
-When several models are compared and the resulting table exceeds the
-current console width, the print method automatically splits the output
-into blocks. The available width is determined by \code{getOption("width")}.
-
-Standard errors are taken from the fitted \code{unitregTMB} object.
-If a standard error is unavailable, the estimate is retained and its
-standard error is displayed as \code{---}.
+In console output, significance codes use a fixed three-character
+field so that estimates and standard errors remain vertically aligned.
+The console printer automatically splits wide tables into blocks according
+to \code{getOption("width")}. LaTeX output is a simple \code{table} and
+\code{tabular} environment.
 }
 \examples{
 \donttest{
 data("wqi", package = "unitregTMB")
-
-fit_beta <- unitregTMB(
-  y ~ location,
-  data = wqi,
-  family = beta_fam(model_for = "mean")
-)
-
-fit_ug <- unitregTMB(
-  y ~ location,
-  data = wqi,
-  family = unitgamma(model_for = "mean")
-)
-
-summary_coef(
-  fit_beta,
-  fit_ug,
-  component = "mu",
-  digits = 2
-)
-
-## Display both location and dispersion predictors
-summary_coef(
-  fit_beta,
-  fit_ug,
-  component = c("mu", "phi"),
-  digits = 3
-)
-
-## Display all available distributional predictors
-summary_coef(
-  fit_beta,
-  fit_ug,
-  component = "all",
-  digits = 2
-)
+fit_beta <- unitregTMB(y ~ location, data = wqi,
+                       family = beta_fam(model_for = "mean"))
+fit_ug <- unitregTMB(y ~ location, data = wqi,
+                     family = unitgamma(model_for = "mean"))
+summary_coef(fit_beta, fit_ug)
+summary_coef(fit_beta, fit_ug, component = "all", signif_stars = TRUE)
+summary_coef(fit_beta, fit_ug, signif_stars = TRUE, print_tex = TRUE)
 }
 
 }
