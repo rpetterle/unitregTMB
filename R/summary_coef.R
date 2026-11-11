@@ -259,9 +259,10 @@ print.summary_coef.unitregTMB <- function(x, digits = NULL, print_tex = NULL,
     cat("Regression coefficients (standard errors) ", "for unitregTMB models:\n", sep = "")
     .unitreg_print_blocks(tab = tab, row_labels = display_names,
                           first_header = "Predictor", min_col_width = 15L)
-    if (signif_stars)
-      cat("---\n") 
-    cat("Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n")
+    if (signif_stars) {
+      cat("---\n")
+      cat("Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n")
+    }
   }
   
   invisible(x)
